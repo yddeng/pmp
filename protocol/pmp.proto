@@ -1,0 +1,70 @@
+syntax = "proto3";
+option go_package = "protocol";
+
+message login_req{
+    string name = 1;
+}
+
+message login_resp{
+    string msg = 1;
+}
+
+message file{
+    string fileName  = 1;
+    bool   next      = 2;
+    bytes  b         = 3;
+    int32  length    = 4;
+}
+
+enum State{
+    Running = 0;
+}
+
+message Process{
+    string name    = 1;
+    int32  pid     = 2;
+    State  state   = 3;
+    bool   isGuard = 4;
+    Assets assets  = 5;
+    int32  execID  = 6;
+}
+
+message Assets{
+    double  cpuUsed  = 1;
+    double  memUsed  = 2;
+    double  diskUsed = 3;
+}
+
+message Start_req{
+    string name    = 1;
+    string command = 2;
+}
+
+message Start_resp{
+    string msg = 1;
+}
+
+message stop_req{
+    int32 execId = 1;
+}
+
+message stop_resp{
+    string msg = 1;
+}
+
+message kill_req{
+    int32 execId = 1;
+}
+
+message kill_resp{
+    string msg = 1;
+}
+
+message signal_req{
+    int32 execId = 1;
+    int32 signal = 2;
+}
+
+message signal_resp{
+    string msg = 1;
+}
