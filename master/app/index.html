@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" href="lib/sidebar/css/sidebar-menu.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/index.css">
+    <title>teacher控制台</title>
+</head>
+<body>
+<div id="tips" class="tips"><span id="tips-msg"></span></div>
+<div id="header">
+    <div id="header-show">控制台</div>
+</div>
+<div id="navigation">
+        <ul class="sidebar-menu">
+            <li class="header">MAIN NAVIGATION</li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i> <span>物理机状态</span> <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" id="menu-ip"></ul>
+            </li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i>  <span>Teacher程序</span>  <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" id="menu-tt"></ul>
+            </li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i>  <span>Teacher集群组</span>  <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" id="menu-group"></ul>
+            </li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i>  <span>配置文件</span>  <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" id="menu-config">
+                    <li><a href="temp/config.html?tt=teacher" target="menuFrame"><i class="fa"></i> teacher </a></li>
+                </ul>
+            </li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i>  <span>依赖程序</span>  <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" id="menu-other">
+                    <li><a href="temp/other.html?tt=flyfish" target="menuFrame"><i class="fa"></i> flyfish </a></li>
+                </ul>
+            </li>
+            <li class="treeview">
+                <a href="#">
+                    <i class="fa"></i>  <span>GM命令</span>  <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu">
+                    <li><a href="temp/gm/firewall.html" target="menuFrame"><i class="fa"></i>防火墙</a></li>
+                    <li><a href="temp/gm/announcement.html" target="menuFrame"><i class="fa"></i> 公告</a></li>
+                    <li><a href="temp/gm/functionswitch.html" target="menuFrame"><i class="fa"></i> funcSwitch </a></li>
+                    <li><a href="temp/gm/time.html" target="menuFrame"><i class="fa"></i> 时间偏移 </a></li>
+                </ul>
+            </li>
+        </ul>
+</div>
+<div id="content">
+    <div id="content-title">
+        sdsds
+    </div>
+    <div id="content-iframe">
+        <iframe id="menuFrame" name="menuFrame" src="temp/item.html?tt=all" style="overflow:visible;" scrolling="yes" frameborder="no" width="100%" height="100%; float:left"></iframe>
+    </div>
+</div>
+
+<script src="lib/jquery/jquery.js"></script>
+<script src="lib/sidebar/js/sidebar-menu.js"></script>
+<script src="js/common.js"></script>
+<script src="js/util.js"></script>
+<script>
+    /*            <li>*/
+    /*                <a href="temp/config.html?" target="menuFrame">*/
+    /*                    <i class="fa"></i> <span>配置文件</span>*/
+    /*                    <small class="label pull-right label-info"></small>*/
+    /*                </a>*/
+    /*            </li>*/
+    window.onload = function () {
+        let tmpIp = `<li><a href="temp/machine.html?ip={0}" target="menuFrame"><i class="fa"></i> {0} </a></li>`;
+        let tmpTt = `<li><a href="temp/item.html?tt={0}" target="menuFrame"><i class="fa"></i> {0}</a></li>`;
+        let tmpGroup = `<li><a href="temp/group.html?idx={0}&ip={1}" target="menuFrame"><i class="fa"></i> {1}</a></li>`;
+        let tmpCfg = `<li><a href="temp/config.html?tt={0}" target="menuFrame"><i class="fa"></i> {0}</a></li>`;
+        let tmpOther = `<li><a href="temp/other.html?tt={0}" target="menuFrame"><i class="fa"></i> {0} </a></li>`;
+
+        let listIP = document.getElementById('menu-ip');
+        listIP.innerHTML = "";
+        let listTt = document.getElementById('menu-tt');
+        listTt.innerHTML = "";
+        let listGroup = document.getElementById('menu-group');
+        listGroup.innerHTML = "";
+        let listCfg = document.getElementById('menu-config');
+        listCfg.innerHTML = "";
+        let listOther = document.getElementById('menu-other');
+        listOther.innerHTML = "";
+        util.httpGet(httpAddr+"/getMenu",function (res) {
+            if (res.ok) {
+                console.log(res);
+                let strIp = "";
+                let lenIp = res.ips.length;
+                for (let i = 0;i < lenIp;i++){
+                    strIp += util.format(tmpIp,res.ips[i])
+                }
+                listIP.innerHTML = strIp;
+
+                let strTt = `<li><a href="temp/item.html?tt=all" target="menuFrame"><i class="fa"></i> 总览 </a></li>`;
+                let lenTt = res.ts.length;
+                for (let i = 0;i < lenTt;i++){
+                    strTt += util.format(tmpTt,res.ts[i])
+                }
+                listTt.innerHTML = strTt;
+
+                let strGroup = "";
+                let lenGroup = res.groups.length;
+                for (let i = 0;i < lenGroup;i++){
+                    strGroup += util.format(tmpGroup,i,res.groups[i])
+                }
+                listGroup.innerHTML = strGroup;
+
+                let strCfg = "";
+                let lenCfg = res.cfgs.length;
+                for (let i = 0;i < lenCfg;i++){
+                    strCfg += util.format(tmpCfg,res.cfgs[i])
+                }
+                listCfg.innerHTML = strCfg;
+
+                let strOther = "";
+                let lenOther = res.os.length;
+                for (let i = 0;i < lenOther;i++){
+                    strOther += util.format(tmpOther,res.os[i])
+                }
+                listOther.innerHTML = strOther;
+
+            }else {
+                showTips(res.msg,1000)
+            }
+        },function (e) {
+            console.log(11,e)
+            showTips("网络错误！",1000)
+        });
+    };
+
+    $.sidebarMenu($('.sidebar-menu'));
+
+    $("a").on("click",function(){
+        let address =$(this).attr("href");
+        if (address !== "#" ){
+            $("iframe").attr("src", address);
+        }
+    });
+
+</script>
+</body>
+
+</html>

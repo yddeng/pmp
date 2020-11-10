@@ -9,7 +9,6 @@ import (
 	"github.com/yddeng/pmp/net/pb"
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
-	"time"
 )
 
 var (
@@ -31,7 +30,7 @@ func startListener() error {
 	return l.Listen(func(session dnet.Session) {
 		eventQueue.Push(func() {
 			// 超时时间
-			session.SetTimeout(time.Second*10, 0)
+			//session.SetTimeout(time.Second*10, 0)
 			session.SetCodec(net.NewCodec("pmp_msg", "pmp_req", "pmp_resp"))
 			session.SetCloseCallBack(onClientClose)
 
@@ -80,21 +79,19 @@ func initHandler() {
 	rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdLogin), onLogin)
 }
 
-func Launch() (err error) {
-	util.InitLogger("log", "master")
-
+func Launch() {
 	rpcServer = drpc.NewServer()
 	rpcClient = drpc.NewClient()
 
-	slaves = map[string]*Slave{}
+	slavePtr = &slave{slaves: map[string]*Slave{}}
 	eventQueue = event.NewEventQueue(10240)
-	eventQueue.Run(1)
+	eventQueue.Run()
 
 	initHandler()
+	loadScriptFile()
+	loadItemFile()
 
-	if err = startListener(); err != nil {
-		return
+	if err := startListener(); err != nil {
+		panic(err)
 	}
-
-	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/master"
+	"github.com/yddeng/pmp/util"
 	"os"
 )
 
@@ -11,10 +12,14 @@ func main() {
 		panic("args: config")
 	}
 
-	os.MkdirAll(core.FileSyncPath, os.ModePerm)
+	_ = os.MkdirAll(core.FileSyncPath, os.ModePerm)
+	_ = os.MkdirAll(core.DataPath, os.ModePerm)
+
+	util.InitLogger("log", "master")
 
 	master.LoadConfig(os.Args[1])
 	master.Launch()
+	master.WebAppStart()
 
 	select {}
 }

@@ -149,11 +149,9 @@ func Launch(name_, masterAddr_ string) {
 
 	launcher.handler[protocol.CmdFile] = onSyncFile
 	launcher.rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdStart), onCmdStart)
-	launcher.rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdStop), onCmdStop)
-	launcher.rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdKill), onCmdKill)
 	launcher.rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdSignal), onCmdSignal)
 
-	launcher.eventQue.Run(1)
+	launcher.eventQue.Run()
 	launcher.dial()
 
 }

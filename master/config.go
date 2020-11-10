@@ -5,6 +5,7 @@ import (
 )
 
 type Config struct {
+	WebApp  string `toml:"WebApp"`
 	Service string `toml:"Service"`
 }
 

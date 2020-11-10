@@ -13,15 +13,9 @@ const (
 )
 
 var (
-	execId    = int32(0)
 	execInfos map[int32]*execInfo
 	filename  string
 )
-
-func getExecId() int32 {
-	execId++
-	return execId
-}
 
 func loadExecInfo() {
 	execInfos = map[int32]*execInfo{}
@@ -29,9 +23,6 @@ func loadExecInfo() {
 	delInfos := []int32{}
 	if err := io.DecodeJsonFromFile(&execInfos, filename); err == nil {
 		for id, info := range execInfos {
-			if id > execId {
-				execId = id
-			}
 			if !info.isAlive() {
 				delInfos = append(delInfos, id)
 			}
@@ -51,10 +42,9 @@ func writeExecInfo() {
 }
 
 type execInfo struct {
-	ExecID  int32  `json:"exec_id,omitempty"`
+	ItemID  int32  `json:"item_id,omitempty"`
 	Pid     int64  `json:"pid,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Command string `json:"command,omitempty"`
+	Args    string `json:"args,omitempty"`
 	IsGuard bool   `json:"is_guard,omitempty"`
 }
 
@@ -65,16 +55,16 @@ func (this *execInfo) isAlive() bool {
 	return false
 }
 
-func addExecInfo(execId int32, pid int64, name, command string) {
+func addExecInfo(itemID int32, pid int64, args string) *execInfo {
 	info := &execInfo{
-		ExecID:  execId,
-		Name:    name,
-		Pid:     pid,
-		Command: command,
+		ItemID: itemID,
+		Pid:    pid,
+		Args:   args,
 	}
 
-	execInfos[execId] = info
+	execInfos[itemID] = info
 	writeExecInfo()
+	return info
 }
 
 func delExecInfo(execId int32) {

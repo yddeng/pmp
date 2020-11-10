@@ -8,24 +8,55 @@ import (
 	"github.com/yddeng/pmp/net"
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
-	"time"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sync"
 )
 
 var (
-	slaves map[string]*Slave
+	slavePtr *slave
 )
+
+type slave struct {
+	mtx    sync.RWMutex
+	slaves map[string]*Slave
+}
+
+func (this *slave) getAll() map[string]*Slave {
+	this.mtx.Lock()
+	defer this.mtx.Unlock()
+	return this.slaves
+}
+
+func (this *slave) get(key string) (*Slave, bool) {
+	this.mtx.RLock()
+	s, ok := this.slaves[key]
+	this.mtx.RUnlock()
+	return s, ok
+}
+
+func (this *slave) set(key string, s *Slave) {
+	this.mtx.Lock()
+	defer this.mtx.Unlock()
+	this.slaves[key] = s
+}
+
+func (this *slave) delete(key string) {
+	this.mtx.Lock()
+	defer this.mtx.Unlock()
+	delete(this.slaves, key)
+}
 
 type Slave struct {
 	name    string
 	session dnet.Session
 	ok      bool
+	items   map[int32]*Item
 }
 
-func getSlave() *Slave {
-	for _, s := range slaves {
-		return s
-	}
-	return nil
+type Item struct {
+	itemID int32
 }
 
 func (this *Slave) send(msg interface{}) error {
@@ -52,13 +83,24 @@ func (this *Slave) AsynCall(data proto.Message, callback func(interface{}, error
 	return rpcClient.AsynCall(this, proto.MessageName(data), data, core.RpcTimeout, callback)
 }
 
+func (this *Slave) SyncCall(data proto.Message) (ret interface{}, err error) {
+	ch := make(chan bool, 1)
+	if err = this.AsynCall(data, func(i interface{}, e error) {
+		ret, err = i, e
+		ch <- true
+	}); err == nil {
+		<-ch
+	}
+	return
+}
+
 func onClientClose(session dnet.Session, reason string) {
 	eventQueue.Push(func() {
 		ctx := session.Context()
 		if ctx != nil {
 			slave := ctx.(*Slave)
 			util.Logger().Infof("slave %s Close %s", slave.name, reason)
-			delete(slaves, slave.name)
+			slavePtr.delete(slave.name)
 		}
 	})
 }
@@ -69,7 +111,7 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 
 	name := msg.GetName()
 	util.Logger().Infof("slave %s is login\n", name)
-	_, ok := slaves[name]
+	_, ok := slavePtr.get(name)
 	if ok {
 		util.Logger().Infof("slave %s is already login", name)
 		replyer.Reply(&protocol.LoginResp{Msg: "already login"}, nil)
@@ -77,7 +119,7 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 	}
 
 	slave.name = name
-	slaves[name] = slave
+	slavePtr.set(name, slave)
 	slave.session.SetContext(slave)
 
 	go func() {
@@ -86,9 +128,51 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 		}
 	}()
 	replyer.Reply(&protocol.LoginResp{}, nil)
+}
 
-	go func() {
-		time.Sleep(time.Second * 5)
-		Start()
-	}()
+func getAndSyncAll(slave *Slave) error {
+	length := net.BuffSize - net.HeadSize - 200
+	err := filepath.Walk(core.FileSyncPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			idx := 0
+			total := len(data)
+			for total > length {
+				file := &protocol.File{
+					FileName: path,
+					B:        data[idx : idx+length],
+					Next:     true,
+					Length:   int32(length),
+				}
+				slave.SendMessage(file, true)
+				idx += length
+				total -= length
+			}
+
+			file := &protocol.File{
+				FileName: path,
+				B:        data[idx:],
+				Length:   int32(total),
+			}
+			slave.SendMessage(file, true)
+
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	slave.SendMessage(&protocol.File{})
+	eventQueue.Push(func() {
+		slave.ok = true
+	})
+	return nil
 }
