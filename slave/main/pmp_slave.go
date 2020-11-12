@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/slave"
 	"github.com/yddeng/pmp/util"
+	"os"
 )
 
 var (
@@ -13,6 +15,9 @@ var (
 
 func main() {
 	util.InitLogger("log", "slave")
+
+	_ = os.MkdirAll(core.SharedPath, os.ModePerm)
+	_ = os.MkdirAll(core.DataPath, os.ModePerm)
 	slave.Launch(*name, *masterAddr)
 	select {}
 }

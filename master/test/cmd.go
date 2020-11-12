@@ -8,7 +8,7 @@ import (
 var url = "http://127.0.0.1:23455/itemCmd"
 
 func main() {
-	fmt.Println("1: start 2:stop 3:kill 4:signal")
+	fmt.Println("1: start 2:stop 3:kill")
 	var key int
 	fmt.Scan(&key)
 
@@ -28,27 +28,20 @@ func main() {
 		fmt.Println("itemID")
 		var id int
 		fmt.Scan(&id)
-		reqUrl := fmt.Sprintf("%s/stop", url)
+		reqUrl := fmt.Sprintf("%s/signal", url)
 		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
-			"id": id,
+			"id":     id,
+			"signal": "term",
 		})
 		err = req.ToJSON(&resp)
 	case 3:
 		fmt.Println("itemID")
 		var id int
 		fmt.Scan(&id)
-		reqUrl := fmt.Sprintf("%s/kill", url)
-		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
-			"id": id,
-		})
-		err = req.ToJSON(&resp)
-	case 4:
-		fmt.Println("itemID")
-		var id int
-		fmt.Scan(&id)
 		reqUrl := fmt.Sprintf("%s/signal", url)
 		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
-			"id": id,
+			"id":     id,
+			"signal": "kill",
 		})
 		err = req.ToJSON(&resp)
 	}

@@ -6,11 +6,13 @@ const (
 	CmdLogin  = 1
 	CmdFile   = 2
 	CmdStart  = 3
-	CmdSignal = 6
+	CmdSignal = 4
+	CmdReport = 5
 )
 
 func init() {
 	pb.Register("pmp_msg", &File{}, CmdFile)
+	pb.Register("pmp_msg", &Report{}, CmdReport)
 
 	pb.Register("pmp_req", &LoginReq{}, CmdLogin)
 	pb.Register("pmp_resp", &LoginResp{}, CmdLogin)

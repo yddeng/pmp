@@ -7,7 +7,10 @@ import (
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func WebAppStart() {
@@ -23,7 +26,7 @@ func WebAppStart() {
 	hServer.SetResponseWriterHeader(&header)
 
 	hServer.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./app"))))
-	hServer.Handle("/shared/", http.StripPrefix("/shared/", http.FileServer(http.Dir(core.FileSyncPath))))
+	hServer.Handle("/shared/", http.StripPrefix("/shared/", http.FileServer(http.Dir(core.SharedPath))))
 
 	hServer.HandleFuncUrlParam("/script/get", scriptGet)
 	hServer.HandleFuncJson("/script/create", &script{}, scriptCreate)
@@ -37,8 +40,6 @@ func WebAppStart() {
 	hServer.HandleFuncJson("/item/delete", &item{}, itemDelete)
 
 	hServer.HandleFuncJson("/itemCmd/start", &itemCmd{}, itemCmdStart)
-	hServer.HandleFuncJson("/itemCmd/stop", &itemCmd{}, itemCmdStop)
-	hServer.HandleFuncJson("/itemCmd/kill", &itemCmd{}, itemCmdKill)
 	hServer.HandleFuncJson("/itemCmd/signal", &itemCmd{}, itemCmdSignal)
 
 	if err := hServer.Listen(); err != nil {
@@ -70,19 +71,24 @@ type resultData struct {
 
 func respData(w http.ResponseWriter, ok bool, total, count int, data interface{}) {
 	ret := &resultData{
-		Ok:    ok,
-		Total: total,
-		Count: count,
-		Data:  data,
+		Ok: ok,
+	}
+	if ok {
+		ret.Total = total
+		ret.Count = count
+		ret.Data = data
 	}
 	if err := json.NewEncoder(w).Encode(ret); err != nil {
 		util.Logger().Errorf(err.Error())
 	}
 }
 
+/***************************** 脚本 start ******************************************/
+
 type script struct {
 	ID   int32  `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
+	Date string `json:"date,omitempty"`
 	Args string `json:"args,omitempty"`
 }
 
@@ -95,6 +101,7 @@ func scriptGet(w http.ResponseWriter, msg interface{}) {
 func scriptCreate(w http.ResponseWriter, msg interface{}) {
 	req := msg.(*script)
 	req.ID = scriptPtr.genID()
+	req.Date = time.Now().Format(core.TimeFormat)
 	req.Args = strings.ReplaceAll(req.Args, "&", " ")
 	scriptPtr.set(req.ID, req)
 	respResult(w, true, "")
@@ -107,6 +114,7 @@ func scriptUpdate(w http.ResponseWriter, msg interface{}) {
 		respResult(w, false, "script not exist")
 		return
 	}
+	req.Date = time.Now().Format(core.TimeFormat)
 	req.Args = strings.ReplaceAll(req.Args, "&", " ")
 	scriptPtr.set(req.ID, req)
 	respResult(w, true, "")
@@ -122,17 +130,58 @@ func scriptDelete(w http.ResponseWriter, msg interface{}) {
 	respResult(w, true, "")
 }
 
-func nodeGet(w http.ResponseWriter, msg interface{}) {
-	nodes := slavePtr.getAll()
-	total := len(nodes)
-	respData(w, true, total, total, nodes)
+/***************************** 脚本 end ******************************************/
+
+/***************************** 节点信息 start ******************************************/
+
+type node struct {
+	ID   int32             `json:"id,omitempty"`
+	Name string            `json:"name,omitempty"`
+	Sys  *protocol.SysInfo `json:"sys,omitempty"`
 }
 
+func nodeGet(w http.ResponseWriter, msg interface{}) {
+	req := msg.(url.Values)
+	n := req.Get("n")
+	switch n {
+	case "list":
+		list := []node{}
+		nodes := slavePtr.getAll()
+		for _, v := range nodes {
+			list = append(list, node{ID: v.id, Name: v.name})
+		}
+		total := len(list)
+		respData(w, true, total, total, list)
+	default:
+		num, err := strconv.Atoi(n)
+		if err != nil {
+			respData(w, false, 0, 0, nil)
+			return
+		}
+
+		slave, ok := slavePtr.get(int32(num))
+		if !ok {
+			respData(w, false, 0, 0, nil)
+			return
+		}
+
+		port := slave.GetReport()
+		respData(w, true, 1, 1, node{
+			ID:   slave.id,
+			Name: slave.name,
+			Sys:  port.GetSys(),
+		})
+	}
+}
+
+/***************************** 节点信息 end ******************************************/
+
 type item struct {
-	ID     int32  `json:"id,omitempty"`
-	Name   string `json:"name,omitempty"`
-	Script int32  `json:"script,omitempty"`
-	Node   string `json:"node,omitempty"`
+	ID      int32  `json:"id,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Script  int32  `json:"script,omitempty"`
+	Slave   int32  `json:"slave,omitempty"`
+	IsGuard bool   `json:"is_guard,omitempty"`
 }
 
 func itemGet(w http.ResponseWriter, msg interface{}) {
@@ -147,7 +196,7 @@ func itemCreate(w http.ResponseWriter, msg interface{}) {
 		respResult(w, false, "script not exist")
 		return
 	}
-	if _, ok := slavePtr.get(req.Node); !ok {
+	if _, ok := slavePtr.get(req.Slave); !ok {
 		respResult(w, false, "slave not exist")
 		return
 	}
@@ -184,7 +233,7 @@ func itemCmdStart(w http.ResponseWriter, msg interface{}) {
 		respResult(w, false, "script not exist")
 		return
 	}
-	s, ok := slavePtr.get(item.Node)
+	s, ok := slavePtr.get(item.Slave)
 	if !ok {
 		respResult(w, false, "slave not exist")
 		return
@@ -206,23 +255,35 @@ func itemCmdStart(w http.ResponseWriter, msg interface{}) {
 	}
 }
 
-func itemCmdStop(w http.ResponseWriter, msg interface{}) {
+func itemCmdSignal(w http.ResponseWriter, msg interface{}) {
 	req := msg.(*itemCmd)
 	item, ok := itemPtr.get(req.ID)
 	if !ok {
 		respResult(w, false, "item not exist")
 		return
 	}
-	s, ok := slavePtr.get(item.Node)
+	s, ok := slavePtr.get(item.Slave)
 	if !ok {
 		respResult(w, false, "slave not exist")
 		return
 	}
-	start := &protocol.SignalReq{
+	signal := &protocol.SignalReq{
 		ItemID: item.ID,
-		Signal: protocol.Signal_term,
 	}
-	resp, err := s.SyncCall(start)
+	switch req.Signal {
+	case "term":
+		signal.Signal = protocol.Signal_term
+	case "kill":
+		signal.Signal = protocol.Signal_kill
+	case "user1":
+		signal.Signal = protocol.Signal_user1
+	case "user2":
+		signal.Signal = protocol.Signal_user2
+	default:
+		respResult(w, false, "signal invalid")
+		return
+	}
+	resp, err := s.SyncCall(signal)
 	if err != nil {
 		respResult(w, false, err.Error())
 		return
@@ -235,29 +296,7 @@ func itemCmdStop(w http.ResponseWriter, msg interface{}) {
 	}
 }
 
-func itemCmdKill(w http.ResponseWriter, msg interface{}) {
-	req := msg.(*itemCmd)
-	item, ok := itemPtr.get(req.ID)
-	if !ok {
-		respResult(w, false, "item not exist")
-		return
-	}
-	util.Logger().Infoln(item)
-	respResult(w, true, "")
-}
-
-func itemCmdSignal(w http.ResponseWriter, msg interface{}) {
-	req := msg.(*itemCmd)
-	item, ok := itemPtr.get(req.ID)
-	if !ok {
-		respResult(w, false, "item not exist")
-		return
-	}
-	sig, ok := signals[req.Signal]
-	if !ok {
-		respResult(w, false, "signal not exist")
-		return
-	}
-	util.Logger().Infoln(item, sig)
-	respResult(w, true, "")
+type notify struct {
+	Type string `json:"type"`
+	Url  string `json:"url"`
 }

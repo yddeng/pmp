@@ -83,30 +83,16 @@ util.getMinSecond = function () {
     return util.format(`{0}:{1}:{2}`,mDate.getHours(),mDate.getMinutes(),mDate.getSeconds())
 };
 
-util.str1024 = new Array("b", "Kb", "Mb", "Gb");
-
-util.sizeTo1024 = function (v) {
-    let n = parseFloat(v);
-    let i = 0;
-    for (;n > 1024;) {
-        n /= 1024;
-        i++;
-    }
-    return util.format("{0}{1}", n.toFixed(2), util.str1024[i])
-};
-
-util.sizeTo1000 = function (v) {
-    let n = parseFloat(v);
-    let i = 0;
-    for (;n > 1000;) {
-        n /= 1000;
-        i++;
-    }
-    return util.format("{0}{1}", n.toFixed(2), util.str1024[i])
-};
-
 util.percent = function (v) {
     let n = parseFloat(v);
-    n = n*100;
     return util.format("{0}%", n.toFixed(2))
 };
+
+function showTips(msg,t) {
+    let tip = document.getElementById('tips');
+    tip.style.display = "block";
+
+    let m = document.getElementById("tips-msg");
+    m.innerText=msg;
+    setTimeout(function(){ tip.style.display = "none"},t)
+}

@@ -20,43 +20,55 @@ var (
 
 type slave struct {
 	mtx    sync.RWMutex
-	slaves map[string]*Slave
+	gid    int32
+	slaves map[int32]*Slave
 }
 
-func (this *slave) getAll() map[string]*Slave {
+func (this *slave) genId() int32 {
+	this.mtx.Lock()
+	defer this.mtx.Unlock()
+	this.gid++
+	return this.gid
+}
+
+func (this *slave) getAll() map[int32]*Slave {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	return this.slaves
 }
 
-func (this *slave) get(key string) (*Slave, bool) {
+func (this *slave) get(key int32) (*Slave, bool) {
 	this.mtx.RLock()
 	s, ok := this.slaves[key]
 	this.mtx.RUnlock()
 	return s, ok
 }
 
-func (this *slave) set(key string, s *Slave) {
+func (this *slave) set(key int32, s *Slave) {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	this.slaves[key] = s
 }
 
-func (this *slave) delete(key string) {
+func (this *slave) delete(key int32) {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	delete(this.slaves, key)
 }
 
 type Slave struct {
+	id      int32
 	name    string
 	session dnet.Session
 	ok      bool
-	items   map[int32]*Item
+	Report  *protocol.Report `json:"report"`
+	mtx     sync.RWMutex
 }
 
-type Item struct {
-	itemID int32
+func (this *Slave) GetReport() *protocol.Report {
+	this.mtx.RLock()
+	defer this.mtx.RUnlock()
+	return this.Report
 }
 
 func (this *Slave) send(msg interface{}) error {
@@ -94,13 +106,13 @@ func (this *Slave) SyncCall(data proto.Message) (ret interface{}, err error) {
 	return
 }
 
-func onClientClose(session dnet.Session, reason string) {
+func onClose(session dnet.Session, reason string) {
 	eventQueue.Push(func() {
 		ctx := session.Context()
 		if ctx != nil {
 			slave := ctx.(*Slave)
-			util.Logger().Infof("slave %s Close %s", slave.name, reason)
-			slavePtr.delete(slave.name)
+			util.Logger().Infof("slave %d %s Close %s", slave.id, slave.name, reason)
+			slavePtr.delete(slave.id)
 		}
 	})
 }
@@ -111,15 +123,10 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 
 	name := msg.GetName()
 	util.Logger().Infof("slave %s is login\n", name)
-	_, ok := slavePtr.get(name)
-	if ok {
-		util.Logger().Infof("slave %s is already login", name)
-		replyer.Reply(&protocol.LoginResp{Msg: "already login"}, nil)
-		return
-	}
 
+	slave.id = slavePtr.genId()
 	slave.name = name
-	slavePtr.set(name, slave)
+	slavePtr.set(slave.id, slave)
 	slave.session.SetContext(slave)
 
 	go func() {
@@ -132,7 +139,7 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 
 func getAndSyncAll(slave *Slave) error {
 	length := net.BuffSize - net.HeadSize - 200
-	err := filepath.Walk(core.FileSyncPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(core.SharedPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -175,4 +182,15 @@ func getAndSyncAll(slave *Slave) error {
 		slave.ok = true
 	})
 	return nil
+}
+
+func slaveReport(slave *Slave, msg *net.Message) {
+	report := msg.GetData().(*protocol.Report)
+	slave.mtx.Lock()
+	slave.Report = report
+	slave.mtx.Unlock()
+
+	//for _, v := range report.GetItems() {
+	//
+	//}
 }

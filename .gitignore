@@ -18,6 +18,6 @@
 *.toml
 log/
 *.log
-SYNC/
+shared/
 
 pmp_data/

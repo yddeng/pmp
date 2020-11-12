@@ -3,19 +3,13 @@ package core
 import (
 	"fmt"
 	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/mem"
 	"math"
 )
 
-const (
-	paramFive   = "12345"
-	paramTen    = paramFive + paramFive
-	paramTwenty = paramTen + paramTen
-	paramFifty  = paramTwenty + paramTwenty + paramTen
-)
-
 type MachineParam struct {
-	oldCpus   []cpu.TimesStat
-	oldPercpu bool
+	oldCpus *cpu.TimesStat
 }
 
 func getAllBusy(t cpu.TimesStat) (float64, float64) {
@@ -53,32 +47,60 @@ func calculateAllBusy(t1, t2 []cpu.TimesStat) ([]float64, error) {
 	return ret, nil
 }
 
-func (this *MachineParam) CPU(percpu bool) ([]float64, error) {
-	var err error
-	if this.oldPercpu != percpu || len(this.oldCpus) == 0 {
-		this.oldCpus, err = cpu.Times(percpu)
-		this.oldPercpu = percpu
-		if err != nil {
-			return nil, err
+var unit = []string{"B", "KB", "MB", "GB"}
+
+func toString(total uint64, rate uint64) string {
+	t, r := float64(total), float64(rate)
+	i := 0
+	for t > r {
+		t /= r
+		i++
+		if i == len(unit) {
+			break
 		}
-		return nil, nil
+	}
+	return fmt.Sprintf("%.2f%s", t, unit[i])
+}
+
+// cpuCount , usedPercent
+func (this *MachineParam) CPU() (int, float64) {
+	if this.oldCpus == nil {
+		stat, _ := cpu.Times(false)
+		this.oldCpus = &stat[0]
 	}
 
-	stat, err := cpu.Times(percpu)
-	if err != nil {
-		return nil, err
-	}
-	return calculateAllBusy(this.oldCpus, stat)
+	stat, _ := cpu.Times(false)
+	oldCpu := *this.oldCpus
+	this.oldCpus = &stat[0]
+	nowCpu := stat[0]
+
+	count, _ := cpu.Counts(false)
+	return count, calculateBusy(oldCpu, nowCpu)
 }
 
-func (this *MachineParam) Mem() {
+// total, used , usedPercent
+func (this *MachineParam) Mem() (uint64, uint64, float64) {
+	mMem, _ := mem.VirtualMemory()
+	return mMem.Total, mMem.Used, mMem.UsedPercent
 
 }
 
-func (this *MachineParam) Disk() {
-
+func (this *MachineParam) MemFormat() (string, string, float64) {
+	mMem, _ := mem.VirtualMemory()
+	total := toString(mMem.Total, 1024)
+	used := toString(mMem.Used, 1024)
+	return total, used, mMem.UsedPercent
 }
 
-func (this *MachineParam) AllProcess() {
+// total, used , usedPercent
+func (this *MachineParam) Disk() (uint64, uint64, float64) {
+	mDisk, _ := disk.Usage("/")
+	return mDisk.Total, mDisk.Total - mDisk.Free, float64(mDisk.Total-mDisk.Free) * 100 / float64(mDisk.Total)
+}
 
+func (this *MachineParam) DiskFormat() (string, string, float64) {
+	mDisk, _ := disk.Usage("/")
+	total := toString(mDisk.Total, 1000)
+	used := toString(mDisk.Total-mDisk.Free, 1000)
+	return total, used, float64(mDisk.Total-mDisk.Free) * 100 / float64(mDisk.Total)
 }

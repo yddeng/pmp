@@ -39,6 +39,10 @@ func (this *Launcher) send(msg interface{}) error {
 	return err
 }
 
+func (this *Launcher) SendMessage(msg proto.Message) error {
+	return this.send(net.NewMessage(msg))
+}
+
 func (this *Launcher) SendRequest(req *drpc.Request) error {
 	return this.send(req)
 }
@@ -132,6 +136,50 @@ func (this *Launcher) dispatchMsg(session dnet.Session, msg *net.Message) {
 	}
 }
 
+var sysInfo *core.MachineParam
+
+func (this *Launcher) loop() {
+	if this.state != state_ok {
+		return
+	}
+	report := &protocol.Report{
+		Items: map[int32]*protocol.ItemInfo{},
+	}
+
+	cpuCount, cpuUsedP := sysInfo.CPU()
+	mTotal, mUsed, mUsedP := sysInfo.MemFormat()
+	dTotal, dUsed, dUsedP := sysInfo.DiskFormat()
+	report.Sys = &protocol.SysInfo{
+		CpuCount:        int32(cpuCount),
+		CpuUsedPercent:  cpuUsedP,
+		MemTotal:        mTotal,
+		MemUsed:         mUsed,
+		MemUsedPercent:  mUsedP,
+		DiskTotal:       dTotal,
+		DiskUsed:        dUsed,
+		DiskUsedPercent: dUsedP,
+	}
+
+	for _, v := range execInfos {
+		isAlive := v.isAlive()
+		item := &protocol.ItemInfo{
+			ItemID:  v.ItemID,
+			Pid:     int32(v.Pid),
+			Running: isAlive,
+		}
+		if isAlive {
+			cpu, mem, err := core.ProcessMemCpuUsed(v.Pid)
+			if err == nil {
+				item.CpuUsed = cpu
+				item.MemUsed = mem
+			}
+		}
+		report.Items[item.ItemID] = item
+	}
+
+	_ = this.SendMessage(report)
+}
+
 func Launch(name_, masterAddr_ string) {
 
 	loadExecInfo()
@@ -153,5 +201,17 @@ func Launch(name_, masterAddr_ string) {
 
 	launcher.eventQue.Run()
 	launcher.dial()
+
+	go func() {
+		sysInfo = &core.MachineParam{}
+		timer := time.NewTimer(time.Second)
+		for {
+			<-timer.C
+			launcher.eventQue.Push(func() {
+				launcher.loop()
+				timer.Reset(time.Second)
+			})
+		}
+	}()
 
 }

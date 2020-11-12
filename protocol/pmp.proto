@@ -16,24 +16,6 @@ message file{
     int32  length    = 4;
 }
 
-enum State{
-    Running = 0;
-}
-
-message Process{
-    int32  itemID  = 1;
-    int32  pid     = 2;
-    State  state   = 3;
-    bool   isGuard = 4;
-    Assets assets  = 5;
-}
-
-message Assets{
-    double  cpuUsed  = 1;
-    double  memUsed  = 2;
-    double  diskUsed = 3;
-}
-
 message Start_req{
     string args = 1;
     int32  itemID = 2;
@@ -58,4 +40,30 @@ message signal_req{
 
 message signal_resp{
     string msg = 1;
+}
+
+/* **** */
+
+message ItemInfo{
+    int32  itemID  = 1;
+    int32  pid     = 2;
+    double cpuUsed = 3;
+    double memUsed = 4;
+    bool   running = 5;
+}
+
+message SysInfo{
+    int32  cpuCount        = 1;
+    double cpuUsedPercent  = 2;
+    string memTotal        = 3;
+    string memUsed         = 4;
+    double memUsedPercent  = 5;
+    string diskTotal       = 6;
+    string diskUsed        = 7;
+    double diskUsedPercent = 8;
+}
+
+message report{
+    SysInfo              sys   = 1;
+    map<int32,ItemInfo>  items = 2;
 }

@@ -16,10 +16,10 @@ func main() {
 	var err error
 	switch key {
 	case 1:
-		fmt.Println("scriptID name node")
-		var id int
-		var name, node string
-		fmt.Scan(&id, &name, &node)
+		fmt.Println("name scriptId nodeId")
+		var name string
+		var id, node int
+		fmt.Scan(&name, &id, &node)
 		reqUrl := fmt.Sprintf("%s/create", url)
 		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
 			"script": id,

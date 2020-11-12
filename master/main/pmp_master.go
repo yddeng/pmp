@@ -12,7 +12,7 @@ func main() {
 		panic("args: config")
 	}
 
-	_ = os.MkdirAll(core.FileSyncPath, os.ModePerm)
+	_ = os.MkdirAll(core.SharedPath, os.ModePerm)
 	_ = os.MkdirAll(core.DataPath, os.ModePerm)
 
 	util.InitLogger("log", "master")

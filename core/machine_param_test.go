@@ -7,16 +7,14 @@ import (
 )
 
 func TestMachineParam_CPU(t *testing.T) {
-	cpu := &MachineParam{}
+	sys := &MachineParam{}
 
-	//cpu.CPU(false)
 	for {
 		time.Sleep(time.Second)
-		f, _ := cpu.CPU(false)
-		if len(f) > 0 {
-			fmt.Println(0, f[0])
-		}
+		n, f := sys.CPU()
+		fmt.Println(n, f)
+		fmt.Println(sys.MemFormat())
+		fmt.Println(sys.DiskFormat())
 	}
 
-	time.Sleep(time.Second * 5)
 }

@@ -4,71 +4,72 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.css">
     <link rel="stylesheet" href="lib/sidebar/css/sidebar-menu.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
-    <link rel="stylesheet" href="css/index.css">
-    <title>teacher控制台</title>
+    <link rel="stylesheet" href="lib/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/border.css">
+    <style>
+        *{ margin: 0; padding: 0;font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
+        a{ text-decoration: none;}
+        html{width: 100%;height: 100%;overflow-x:hidden;overflow-y:hidden;}
+        body{width: 100%;min-height: 100%;background: #f0f1f5;}
+        #navigation{position: absolute;top:0;bottom: 0;left: 0;width: 220px;z-index: 2;padding-top: 20px;color: white;background-color: #222d32;}
+        #content{position: absolute;top:0;bottom: 0;left:220px;right: 0;background: #f0f1f5;}
+        #content-title{position: absolute;top: 0;height:90px;left: 0;right:0;background: #fff;}
+        #content-iframe{position: absolute;top: 90px;right: 0;bottom: 0;left: 0;overflow-y: hidden;z-index: 1;}
+        #content-title-header{height: 45px;line-height: 45px;padding: 0 10px;border-bottom: 2px solid #f6f6f6;}
+        #content-title-table{height: 42px}
+    </style>
+    <title>后端程序管理系统</title>
 </head>
 <body>
 <div id="tips" class="tips"><span id="tips-msg"></span></div>
-<div id="header">
-    <div id="header-show">控制台</div>
-</div>
 <div id="navigation">
         <ul class="sidebar-menu">
-            <li class="header">MAIN NAVIGATION</li>
+            <li class="header">后端程序管理系统</li>
             <li class="treeview">
-                <a href="#">
-                    <i class="fa"></i> <span>物理机状态</span> <i class="fa fa-angle-left pull-right"></i>
+                <a href="nav/home.html" target="menuFrame">
+                    <i class="fa"></i> <span>首页</span>
+                    <small class="label pull-right label-info"></small>
                 </a>
-                <ul class="treeview-menu" id="menu-ip"></ul>
             </li>
             <li class="treeview">
                 <a href="#">
-                    <i class="fa"></i>  <span>Teacher程序</span>  <i class="fa fa-angle-left pull-right"></i>
+                    <i class="fa"></i>  <span>节点信息</span>  <i class="fa fa-angle-left pull-right"></i>
                 </a>
-                <ul class="treeview-menu" id="menu-tt"></ul>
+                <ul class="treeview-menu" id="menu-nodes"></ul>
             </li>
             <li class="treeview">
                 <a href="#">
-                    <i class="fa"></i>  <span>Teacher集群组</span>  <i class="fa fa-angle-left pull-right"></i>
+                    <i class="fa"></i>  <span>共享文件</span>  <i class="fa fa-angle-left pull-right"></i>
                 </a>
-                <ul class="treeview-menu" id="menu-group"></ul>
+                <ul class="treeview-menu" >
+                    <li><a href="nav/file.html" target="menuFrame"><i class="fa"></i> 文件管理 </a></li>
+                </ul>
             </li>
             <li class="treeview">
                 <a href="#">
-                    <i class="fa"></i>  <span>配置文件</span>  <i class="fa fa-angle-left pull-right"></i>
+                    <i class="fa"></i>  <span>启动脚本</span>  <i class="fa fa-angle-left pull-right"></i>
                 </a>
                 <ul class="treeview-menu" id="menu-config">
-                    <li><a href="temp/config.html?tt=teacher" target="menuFrame"><i class="fa"></i> teacher </a></li>
+                    <li><a href="nav/script.html" target="menuFrame"><i class="fa"></i> 脚本管理 </a></li>
                 </ul>
             </li>
             <li class="treeview">
                 <a href="#">
-                    <i class="fa"></i>  <span>依赖程序</span>  <i class="fa fa-angle-left pull-right"></i>
+                    <i class="fa"></i>  <span>项目程序</span>  <i class="fa fa-angle-left pull-right"></i>
                 </a>
                 <ul class="treeview-menu" id="menu-other">
-                    <li><a href="temp/other.html?tt=flyfish" target="menuFrame"><i class="fa"></i> flyfish </a></li>
-                </ul>
-            </li>
-            <li class="treeview">
-                <a href="#">
-                    <i class="fa"></i>  <span>GM命令</span>  <i class="fa fa-angle-left pull-right"></i>
-                </a>
-                <ul class="treeview-menu">
-                    <li><a href="temp/gm/firewall.html" target="menuFrame"><i class="fa"></i>防火墙</a></li>
-                    <li><a href="temp/gm/announcement.html" target="menuFrame"><i class="fa"></i> 公告</a></li>
-                    <li><a href="temp/gm/functionswitch.html" target="menuFrame"><i class="fa"></i> funcSwitch </a></li>
-                    <li><a href="temp/gm/time.html" target="menuFrame"><i class="fa"></i> 时间偏移 </a></li>
+                    <li><a href="nav/item.html" target="menuFrame"><i class="fa"></i> 项目管理 </a></li>
                 </ul>
             </li>
         </ul>
 </div>
 <div id="content">
     <div id="content-title">
-        sdsds
+        <div id="content-title-header">后端程序管理系统</div>
+        <div id="content-title-table"></div>
     </div>
     <div id="content-iframe">
-        <iframe id="menuFrame" name="menuFrame" src="temp/item.html?tt=all" style="overflow:visible;" scrolling="yes" frameborder="no" width="100%" height="100%; float:left"></iframe>
+        <iframe id="menuFrame" name="menuFrame" src="nav/home.html" style="overflow:visible;" scrolling="yes" frameborder="no" width="100%" height="100%; float:left"></iframe>
     </div>
 </div>
 
@@ -84,60 +85,19 @@
     /*                </a>*/
     /*            </li>*/
     window.onload = function () {
-        let tmpIp = `<li><a href="temp/machine.html?ip={0}" target="menuFrame"><i class="fa"></i> {0} </a></li>`;
-        let tmpTt = `<li><a href="temp/item.html?tt={0}" target="menuFrame"><i class="fa"></i> {0}</a></li>`;
-        let tmpGroup = `<li><a href="temp/group.html?idx={0}&ip={1}" target="menuFrame"><i class="fa"></i> {1}</a></li>`;
-        let tmpCfg = `<li><a href="temp/config.html?tt={0}" target="menuFrame"><i class="fa"></i> {0}</a></li>`;
-        let tmpOther = `<li><a href="temp/other.html?tt={0}" target="menuFrame"><i class="fa"></i> {0} </a></li>`;
+        let tmpNode = `<li><a href="nav/node.html?n={0}" target="menuFrame"><i class="fa"></i> {1} </a></li>`;
 
-        let listIP = document.getElementById('menu-ip');
-        listIP.innerHTML = "";
-        let listTt = document.getElementById('menu-tt');
-        listTt.innerHTML = "";
-        let listGroup = document.getElementById('menu-group');
-        listGroup.innerHTML = "";
-        let listCfg = document.getElementById('menu-config');
-        listCfg.innerHTML = "";
-        let listOther = document.getElementById('menu-other');
-        listOther.innerHTML = "";
-        util.httpGet(httpAddr+"/getMenu",function (res) {
+        let listNodes = document.getElementById('menu-nodes');
+        listNodes.innerHTML = "";
+        util.httpGet(httpAddr+"/node/get?n=list",function (res) {
             if (res.ok) {
                 console.log(res);
-                let strIp = "";
-                let lenIp = res.ips.length;
-                for (let i = 0;i < lenIp;i++){
-                    strIp += util.format(tmpIp,res.ips[i])
+                let name = "";
+                for (let i = 0;i < res.total;i++){
+                    let node = res.data[i];
+                    name += util.format(tmpNode,node.id,node.name)
                 }
-                listIP.innerHTML = strIp;
-
-                let strTt = `<li><a href="temp/item.html?tt=all" target="menuFrame"><i class="fa"></i> 总览 </a></li>`;
-                let lenTt = res.ts.length;
-                for (let i = 0;i < lenTt;i++){
-                    strTt += util.format(tmpTt,res.ts[i])
-                }
-                listTt.innerHTML = strTt;
-
-                let strGroup = "";
-                let lenGroup = res.groups.length;
-                for (let i = 0;i < lenGroup;i++){
-                    strGroup += util.format(tmpGroup,i,res.groups[i])
-                }
-                listGroup.innerHTML = strGroup;
-
-                let strCfg = "";
-                let lenCfg = res.cfgs.length;
-                for (let i = 0;i < lenCfg;i++){
-                    strCfg += util.format(tmpCfg,res.cfgs[i])
-                }
-                listCfg.innerHTML = strCfg;
-
-                let strOther = "";
-                let lenOther = res.os.length;
-                for (let i = 0;i < lenOther;i++){
-                    strOther += util.format(tmpOther,res.os[i])
-                }
-                listOther.innerHTML = strOther;
-
+                listNodes.innerHTML = name;
             }else {
                 showTips(res.msg,1000)
             }

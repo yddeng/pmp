@@ -42,10 +42,8 @@ func writeExecInfo() {
 }
 
 type execInfo struct {
-	ItemID  int32  `json:"item_id,omitempty"`
-	Pid     int64  `json:"pid,omitempty"`
-	Args    string `json:"args,omitempty"`
-	IsGuard bool   `json:"is_guard,omitempty"`
+	ItemID int32 `json:"item_id,omitempty"`
+	Pid    int   `json:"pid,omitempty"`
 }
 
 func (this *execInfo) isAlive() bool {
@@ -55,11 +53,10 @@ func (this *execInfo) isAlive() bool {
 	return false
 }
 
-func addExecInfo(itemID int32, pid int64, args string) *execInfo {
+func addExecInfo(itemID int32, pid int) *execInfo {
 	info := &execInfo{
 		ItemID: itemID,
 		Pid:    pid,
-		Args:   args,
 	}
 
 	execInfos[itemID] = info

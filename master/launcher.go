@@ -32,7 +32,7 @@ func startListener() error {
 			// 超时时间
 			//session.SetTimeout(time.Second*10, 0)
 			session.SetCodec(net.NewCodec("pmp_msg", "pmp_req", "pmp_resp"))
-			session.SetCloseCallBack(onClientClose)
+			session.SetCloseCallBack(onClose)
 
 			_ = session.Start(func(data interface{}, err error) {
 				if err != nil {
@@ -75,7 +75,9 @@ func dispatchMsg(session dnet.Session, msg *net.Message) {
 }
 
 func initHandler() {
-	hanlder = map[uint16]func(slave *Slave, msg *net.Message){}
+	hanlder = map[uint16]func(slave *Slave, msg *net.Message){
+		protocol.CmdReport: slaveReport,
+	}
 	rpcServer.Register(pb.GetNameById("pmp_req", protocol.CmdLogin), onLogin)
 }
 
@@ -83,7 +85,7 @@ func Launch() {
 	rpcServer = drpc.NewServer()
 	rpcClient = drpc.NewClient()
 
-	slavePtr = &slave{slaves: map[string]*Slave{}}
+	slavePtr = &slave{slaves: map[int32]*Slave{}}
 	eventQueue = event.NewEventQueue(10240)
 	eventQueue.Run()
 
