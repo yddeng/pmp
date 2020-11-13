@@ -85,7 +85,7 @@ func Launch() {
 	rpcServer = drpc.NewServer()
 	rpcClient = drpc.NewClient()
 
-	slavePtr = &slave{slaves: map[int32]*Slave{}}
+	slavePtr = &slave{slaves: map[string]*Slave{}}
 	eventQueue = event.NewEventQueue(10240)
 	eventQueue.Run()
 

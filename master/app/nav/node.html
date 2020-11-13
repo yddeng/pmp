@@ -19,9 +19,7 @@
 <div id="tips" class="tips"><span id="tips-msg"></span></div>
 <div id="body">
     <div class="body borders">
-        <div id="name" class="asset">
-            sdfsf
-        </div>
+        <div id="name" class="asset"></div>
         <div class="asset">
             <div class="asset-header">
                 <div class="asset-header-title">CPU核心数: &nbsp;<span id="asset-cpu"></span></div><div class="asset-header-content" id="asset-cpu-up"> 0%</div>
@@ -63,13 +61,13 @@
 <script src="../js/util.js"></script>
 <script>
     let nId = util.getUrlParam("n");
-    let getUrl = httpAddr+"/node/get?n="+nId;
+    let getUrl = httpAddr+"/node/get?name="+nId;
     window.onload = function () {
         console.log(111,getUrl,nId);
         util.httpGet(getUrl,function (res) {
             if (res.ok) {
                 console.log(res);
-                document.getElementById('name').innerHTML = res.data.name;
+                document.getElementById('name').innerHTML = util.format("{0}",res.data.name);
                 let sys = res.data.sys;
                 document.getElementById('asset-cpu').innerHTML = sys.cpuCount;
                 document.getElementById('asset-mem').innerHTML = util.format("{0}/{1}",sys.memUsed,sys.memTotal);

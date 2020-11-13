@@ -84,6 +84,8 @@ func (this *Launcher) onConnected(session dnet.Session) {
 				this.session = nil
 				this.state = state_none
 				log.Printf("session closed, reason: %s\n", reason)
+				time.Sleep(time.Second)
+				this.dial()
 			})
 		})
 

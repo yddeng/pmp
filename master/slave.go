@@ -20,44 +20,35 @@ var (
 
 type slave struct {
 	mtx    sync.RWMutex
-	gid    int32
-	slaves map[int32]*Slave
+	slaves map[string]*Slave
 }
 
-func (this *slave) genId() int32 {
-	this.mtx.Lock()
-	defer this.mtx.Unlock()
-	this.gid++
-	return this.gid
-}
-
-func (this *slave) getAll() map[int32]*Slave {
+func (this *slave) getAll() map[string]*Slave {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	return this.slaves
 }
 
-func (this *slave) get(key int32) (*Slave, bool) {
+func (this *slave) get(key string) (*Slave, bool) {
 	this.mtx.RLock()
 	s, ok := this.slaves[key]
 	this.mtx.RUnlock()
 	return s, ok
 }
 
-func (this *slave) set(key int32, s *Slave) {
+func (this *slave) set(key string, s *Slave) {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	this.slaves[key] = s
 }
 
-func (this *slave) delete(key int32) {
+func (this *slave) delete(key string) {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	delete(this.slaves, key)
 }
 
 type Slave struct {
-	id      int32
 	name    string
 	session dnet.Session
 	ok      bool
@@ -111,8 +102,8 @@ func onClose(session dnet.Session, reason string) {
 		ctx := session.Context()
 		if ctx != nil {
 			slave := ctx.(*Slave)
-			util.Logger().Infof("slave %d %s Close %s", slave.id, slave.name, reason)
-			slavePtr.delete(slave.id)
+			util.Logger().Infof("slave %s Close %s", slave.name, reason)
+			slavePtr.delete(slave.name)
 		}
 	})
 }
@@ -124,9 +115,13 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 	name := msg.GetName()
 	util.Logger().Infof("slave %s is login\n", name)
 
-	slave.id = slavePtr.genId()
+	if _, ok := slavePtr.get(name); ok {
+		replyer.Reply(&protocol.LoginResp{Msg: "name already login"}, nil)
+		return
+	}
+
 	slave.name = name
-	slavePtr.set(slave.id, slave)
+	slavePtr.set(slave.name, slave)
 	slave.session.SetContext(slave)
 
 	go func() {

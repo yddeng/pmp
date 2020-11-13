@@ -8,7 +8,6 @@ import (
 	"github.com/yddeng/pmp/util"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -135,31 +134,24 @@ func scriptDelete(w http.ResponseWriter, msg interface{}) {
 /***************************** 节点信息 start ******************************************/
 
 type node struct {
-	ID   int32             `json:"id,omitempty"`
 	Name string            `json:"name,omitempty"`
 	Sys  *protocol.SysInfo `json:"sys,omitempty"`
 }
 
 func nodeGet(w http.ResponseWriter, msg interface{}) {
 	req := msg.(url.Values)
-	n := req.Get("n")
-	switch n {
+	name := req.Get("name")
+	switch name {
 	case "list":
-		list := []node{}
+		list := []string{}
 		nodes := slavePtr.getAll()
 		for _, v := range nodes {
-			list = append(list, node{ID: v.id, Name: v.name})
+			list = append(list, v.name)
 		}
 		total := len(list)
 		respData(w, true, total, total, list)
 	default:
-		num, err := strconv.Atoi(n)
-		if err != nil {
-			respData(w, false, 0, 0, nil)
-			return
-		}
-
-		slave, ok := slavePtr.get(int32(num))
+		slave, ok := slavePtr.get(name)
 		if !ok {
 			respData(w, false, 0, 0, nil)
 			return
@@ -167,7 +159,6 @@ func nodeGet(w http.ResponseWriter, msg interface{}) {
 
 		port := slave.GetReport()
 		respData(w, true, 1, 1, node{
-			ID:   slave.id,
 			Name: slave.name,
 			Sys:  port.GetSys(),
 		})
@@ -176,11 +167,14 @@ func nodeGet(w http.ResponseWriter, msg interface{}) {
 
 /***************************** 节点信息 end ******************************************/
 
+/***************************** 项目 start ******************************************/
+
 type item struct {
 	ID      int32  `json:"id,omitempty"`
 	Name    string `json:"name,omitempty"`
 	Script  int32  `json:"script,omitempty"`
-	Slave   int32  `json:"slave,omitempty"`
+	Slave   string `json:"slave,omitempty"`
+	Date    string `json:"date,omitempty"`
 	IsGuard bool   `json:"is_guard,omitempty"`
 }
 
@@ -202,6 +196,7 @@ func itemCreate(w http.ResponseWriter, msg interface{}) {
 	}
 
 	req.ID = itemPtr.genID()
+	req.Date = time.Now().Format(core.TimeFormat)
 	itemPtr.set(req.ID, req)
 	respResult(w, true, "")
 }
@@ -215,6 +210,10 @@ func itemDelete(w http.ResponseWriter, msg interface{}) {
 	itemPtr.delete(req.ID)
 	respResult(w, true, "")
 }
+
+/***************************** 项目 end ******************************************/
+
+/***************************** 项目操作 start ******************************************/
 
 type itemCmd struct {
 	ID     int32  `json:"id,omitempty"`
@@ -295,6 +294,8 @@ func itemCmdSignal(w http.ResponseWriter, msg interface{}) {
 		respResult(w, true, "")
 	}
 }
+
+/***************************** 项目操作 end ******************************************/
 
 type notify struct {
 	Type string `json:"type"`

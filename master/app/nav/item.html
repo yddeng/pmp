@@ -1,14 +1,272 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>file</title>
+    <meta charset="UTF-8">
+    <title>项目管理</title>
+    <link rel="stylesheet" href="../css/border.css">
+    <link rel="stylesheet" href="../css/tips.css">
+    <link rel="stylesheet" href="../css/shadow.css">
+    <link rel="stylesheet" href="../lib/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" href="../lib/font-awesome/css/font-awesome.min.css">
     <style>
+        *{ margin: 0; padding: 0;font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
+        #body{margin:5px 10px;height: 100%}
+        #header{height: 100px;margin-bottom: 10px}
+        #header-title{height: 60px;}
+        #header-foot{height: 30px;}
 
+        #edit{width:800px;top: 10%;left: 30%;position:absolute;background: white; z-index: 1000;display: none}
+        #edit-header{height: 50px;margin-bottom:20px;}
+        #edit-header-title{height: 50px;width: 740px;float: left;font-size: 18px;line-height: 50px}
+        #edit-header-close{height: 50px;width: 40px;float: left;line-height: 50px}
+        #edit-content{height: 200px;}
+        .edit-content-line{height: 40px;margin-bottom: 10px}
+        #edit-foot{height: 50px;}
+        #edit-foot-left{height: 50px;width: 600px;float: left}
+        #edit-foot-right{height: 50px;width: 180px;float: left}
+        .edit-foot-btn{width: 74px;margin: 0 5px}
+
+        .item{height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        .item-check{width: 5%;float: left;}
+        .item-id{width: 5%;float: left;}
+        .item-name{width: 10%;float: left;}
+        .item-args{width: 45%;float: left;}
+        .item-date{width: 15%;float: left;}
+        .item-action{width: 15%;float: left;}
+        #item-header{background: #9dc1d3;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        .header-btn{width: 74px;height: 28px;font-size: 12px;}
+        .action-btn{height: 28px;font-size: 12px;}
     </style>
 </head>
 <body>
+<div id="tips" class="tips"><span id="tips-msg"></span></div>
+<div id="shadow" onclick="editClose(false)"></div>
+<div id="edit" class="borders">
+    <input id="input-id" hidden="hidden">
+    <div id="edit-header">
+        <div id="edit-header-title">新增脚本</div>
+        <div id="edit-header-close"><button type="button" class="btn btn-link"  onclick="editClose(false)"><i class="fa fa-times"></i></button></div>
+    </div>
+    <div id="edit-content">
+        <div class="edit-content-line">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>脚本名称</span>
+                </div>
+                <input id="input-name" type="text" class="form-control" placeholder="" >
+            </div>
+        </div>
+        <div class="edit-content-line">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>参数</span>
+                </div>
+                <input id="input-args" type="text" class="form-control" placeholder="" >
+            </div>
+        </div>
+    </div>
+    <div id="edit-foot">
+        <div id="edit-foot-left"></div>
+        <div id="edit-foot-right">
+            <button type="button" class="btn edit-foot-btn btn-primary" onclick="editClose(true)">确定</button>
+            <button type="button" class="btn edit-foot-btn btn-outline-secondary"  onclick="editClose(false)">取消</button>
+        </div>
+    </div>
+</div>
+<div id="body" class="borders">
+    <div id="header" class="borders">
+        <div id="header-title">脚本管理</div>
+        <div id="header-foot">
+            <button type="button" class="btn header-btn btn-primary" onclick="editOpen(null)"><i class="fa fa-plus"></i><span>新增</span></button>
+            <button type="button" class="btn header-btn btn-success" disabled="disabled"><i class="fa fa-edit"></i><span>修改</span></button>
+            <button type="button" class="btn header-btn btn-danger batch-btn" disabled="disabled" onclick="scriptDelete(0)"><i class="fa fa-trash-o"></i><span>删除</span></button>
+        </div>
+    </div>
+    <div id="content">
+        <div id="item-header">
+            <div class="item-check"><input type="checkbox" id="checkAll" onclick="checkAllState(this.checked)" class="checkbox"></div>
+            <div class="item-id">ID</div>
+            <div class="item-name">名称</div>
+            <div class="item-args">参数</div>
+            <div class="item-date">时间</div>
+            <div class="item-action">&nbsp;&nbsp;&nbsp;操作</div>
+        </div>
+        <div id="item-list"></div>
+    </div>
+</div>
+<script src="../lib/jquery/jquery.js"></script>
+<script src="../js/common.js"></script>
+<script src="../js/shadow.js"></script>
+<script src="../js/util.js"></script>
+<script>
 
+    window.onload = function () {
+        scriptGet();
+    };
+
+    function scriptGet() {
+        let tmp = `<div class="item">
+                <div class="item-check"><input type="checkbox" value="{0}" name="checkbox" class="checkbox" onclick="checkState(this.checked)" ></div>
+                <div class="item-id">{0}</div>
+                <div class="item-name">{1}</div>
+                <div class="item-args">{2}</div>
+                <div class="item-date">{3}</div>
+                <div class="item-action">
+                    <button type="button" class="btn action-btn btn-link" onclick="editOpen(this)"><i class="fa fa-edit"></i><span>修改</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="scriptDelete({0})"><i class="fa fa-trash-o"></i><span>删除</span></button>
+                </div>
+            </div>`;
+
+        let list = document.getElementById('item-list');
+        list.innerHTML = "";
+        util.httpGet(httpAddr+"/script/get",function (res) {
+            if (res.ok) {
+                console.log(res);
+                let str = "";
+                for (let key in res.data) {
+                    let item = res.data[key];
+                    console.log(key, item);
+                    str += util.format(tmp, item.id, item.name, item.args, item.date)
+                }
+                list.innerHTML = str;
+            } else {
+                showTips(res.message, 1000)
+            }
+        },function (e) {
+            console.log(11,e);
+            showTips("网络错误！",1000)
+        });
+    }
+
+    // id 传入脚本Id。当Id ==0 时，为批量操作。
+    function scriptDelete(id) {
+        let reqUrl = httpAddr + "/script/delete";
+        let ids = [];
+        if (id ===0){
+            let chk_list = document.getElementsByName("checkbox");
+            for(let i=0;i< chk_list.length;i++){
+                if (chk_list[i].checked){
+                    ids.push(parseInt(chk_list[i].value));
+                }
+            }
+        }else {
+            ids.push(id);
+        }
+        console.log("delete",ids,ids.length);
+        for (let i = 0;i < ids.length;i++){
+            let cmd = {id:ids[i]};
+            util.httpPost(reqUrl,JSON.stringify(cmd),function (res) {
+                if (res.ok) {
+                    showTips("成功",2000);
+                    scriptGet();
+                }else {
+                    showTips(res.message,2000)
+                }
+            },function (e) {
+                console.log(e);
+                showTips("网络错误！",2000)
+            })
+        }
+    }
+
+    // 全部选中，checkAll状态为true。 有一个选中批量操作按钮可点击，否则不能
+    function checkState(isChecked) {
+        let chk_list = document.getElementsByName("checkbox");
+        let checkedNum = 0;
+        for(let i=0;i<chk_list.length;i++){
+            if (chk_list[i].checked){
+                checkedNum++
+            }
+        }
+
+        if (checkedNum === chk_list.length){
+            document.getElementById("checkAll").checked = true;
+        }else {
+            document.getElementById("checkAll").checked = false;
+        }
+
+        let batchBtn = document.getElementsByClassName("batch-btn");
+        if (checkedNum === 0){
+            for (let i =0;i < batchBtn.length;i++){
+                batchBtn[i].disabled = true
+            }
+        }else {
+            for (let i =0;i < batchBtn.length;i++){
+                batchBtn[i].disabled = false
+            }
+        }
+
+    }
+
+    function checkAllState(isChecked){
+        let chk_list = document.getElementsByName("checkbox");
+        for(let i=0;i<chk_list.length;i++){
+            chk_list[i].checked=isChecked;
+        }
+
+        let batchBtn = document.getElementsByClassName("batch-btn");
+        if (!isChecked){
+            for (let i =0;i < batchBtn.length;i++){
+                batchBtn[i].disabled = true
+            }
+        }else {
+            for (let i =0;i < batchBtn.length;i++){
+                batchBtn[i].disabled = false
+            }
+        }
+    }
+
+    // arg == null 时，新增。 否则为修改
+    function editOpen(arg) {
+        if (arg){
+            document.getElementById("edit-header-title").innerHTML = "修改脚本";
+            console.log(arg);
+            let parent = arg.parentElement.parentElement;
+            let nodes = parent.children;
+            document.getElementById("input-id").value = nodes[1].innerHTML;
+            document.getElementById("input-name").value = nodes[2].innerHTML;
+            document.getElementById("input-args").value = nodes[3].innerHTML;
+        }else {
+            document.getElementById("edit-header-title").innerHTML = "新增脚本"
+        }
+        shadowShow();
+        document.getElementById("edit").style.display = "block";
+    }
+
+    // confirm == true 时，确定。 否则为关闭。
+    function editClose(confirm) {
+        let id = document.getElementById("input-id");
+        let name = document.getElementById("input-name");
+        let args = document.getElementById("input-args");
+        if (confirm){
+            let reqUrl =  "";
+            let cmd = {name:name.value,args:args.value};
+            if (id.value === ""){
+                reqUrl = httpAddr + "/script/create"
+            }else {
+                reqUrl = httpAddr + "/script/update";
+                cmd.id = parseInt(id.value)
+            }
+            console.log("cmd",cmd);
+            util.httpPost(reqUrl,JSON.stringify(cmd),function (res) {
+                if (res.ok) {
+                    showTips("成功",2000);
+                    scriptGet();
+                }else {
+                    showTips(res.message,2000)
+                }
+            },function (e) {
+                console.log(11,e);
+                showTips("网络错误！",2000)
+            })
+        }
+        shadowClose();
+        document.getElementById("edit").style.display = "none";
+
+        id.value = "";
+        name.value = "";
+        args.value = "";
+    }
+</script>
 </body>
-
 </html>

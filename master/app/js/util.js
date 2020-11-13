@@ -78,14 +78,13 @@ util.getCookie = function(cname) {
     return "";
 };
 
-util.getMinSecond = function () {
-    let mDate = new Date();
-    return util.format(`{0}:{1}:{2}`,mDate.getHours(),mDate.getMinutes(),mDate.getSeconds())
-};
-
 util.percent = function (v) {
     let n = parseFloat(v);
     return util.format("{0}%", n.toFixed(2))
+};
+
+util.str2Int = function (v) {
+    return parseInt(v)
 };
 
 function showTips(msg,t) {
