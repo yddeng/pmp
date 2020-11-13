@@ -2,12 +2,15 @@ package master
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/yddeng/dnet/dhttp"
 	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -16,6 +19,12 @@ func WebAppStart() {
 	conf := getConfig()
 
 	hServer := dhttp.NewHttpServer(conf.WebApp)
+
+	webAddr := fmt.Sprintf(`var httpAddr = "http://%s";`, conf.WebApp)
+	err := ioutil.WriteFile("./app/js/addr.js", []byte(webAddr), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 
 	//跨域
 	header := http.Header{}

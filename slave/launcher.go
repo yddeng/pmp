@@ -11,7 +11,6 @@ import (
 	"github.com/yddeng/pmp/net/pb"
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
-	"log"
 	"time"
 )
 
@@ -83,7 +82,7 @@ func (this *Launcher) onConnected(session dnet.Session) {
 			this.eventQue.Push(func() {
 				this.session = nil
 				this.state = state_none
-				log.Printf("session closed, reason: %s\n", reason)
+				util.Logger().Infof("session closed, reason: %s\n", reason)
 				time.Sleep(time.Second)
 				this.dial()
 			})
