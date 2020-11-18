@@ -5,6 +5,7 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
+	"github.com/yddeng/pmp/util"
 	"math"
 )
 
@@ -47,21 +48,6 @@ func calculateAllBusy(t1, t2 []cpu.TimesStat) ([]float64, error) {
 	return ret, nil
 }
 
-var unit = []string{"B", "KB", "MB", "GB"}
-
-func toString(total uint64, rate uint64) string {
-	t, r := float64(total), float64(rate)
-	i := 0
-	for t > r {
-		t /= r
-		i++
-		if i == len(unit) {
-			break
-		}
-	}
-	return fmt.Sprintf("%.2f%s", t, unit[i])
-}
-
 // cpuCount , usedPercent
 func (this *MachineParam) CPU() (int, float64) {
 	if this.oldCpus == nil {
@@ -87,8 +73,8 @@ func (this *MachineParam) Mem() (uint64, uint64, float64) {
 
 func (this *MachineParam) MemFormat() (string, string, float64) {
 	mMem, _ := mem.VirtualMemory()
-	total := toString(mMem.Total, 1024)
-	used := toString(mMem.Used, 1024)
+	total := util.B2String(mMem.Total, 1024)
+	used := util.B2String(mMem.Used, 1024)
 	return total, used, mMem.UsedPercent
 }
 
@@ -100,7 +86,7 @@ func (this *MachineParam) Disk() (uint64, uint64, float64) {
 
 func (this *MachineParam) DiskFormat() (string, string, float64) {
 	mDisk, _ := disk.Usage("/")
-	total := toString(mDisk.Total, 1000)
-	used := toString(mDisk.Total-mDisk.Free, 1000)
+	total := util.B2String(mDisk.Total, 1000)
+	used := util.B2String(mDisk.Total-mDisk.Free, 1000)
 	return total, used, float64(mDisk.Total-mDisk.Free) * 100 / float64(mDisk.Total)
 }

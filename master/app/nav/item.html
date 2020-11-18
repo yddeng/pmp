@@ -10,30 +10,35 @@
     <link rel="stylesheet" href="../lib/font-awesome/css/font-awesome.min.css">
     <style>
         *{ margin: 0; padding: 0;font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
-        #body{margin:5px 10px;height: 100%}
-        #header{height: 100px;margin-bottom: 10px}
+        body{min-width: 1500px;}
+        #body{margin:5px 10px;height: 100%;}
+        #header{height: 100px;padding-top:10px;margin-bottom: 10px}
         #header-title{height: 60px;}
         #header-foot{height: 30px;}
 
-        #edit{width:800px;top: 10%;left: 30%;position:absolute;background: white; z-index: 1000;display: none}
+        #edit{width:600px;top: 10%;left: 30%;position:absolute;background: white; z-index: 1000;display: none}
         #edit-header{height: 50px;margin-bottom:20px;}
-        #edit-header-title{height: 50px;width: 740px;float: left;font-size: 18px;line-height: 50px}
+        #edit-header-title{height: 50px;width: 540px;float: left;font-size: 18px;line-height: 50px}
         #edit-header-close{height: 50px;width: 40px;float: left;line-height: 50px}
         #edit-content{height: 200px;}
         .edit-content-line{height: 40px;margin-bottom: 10px}
+        .edit-content-left{height: 40px;width: 100px;float: left;line-height: 40px;text-align: right;padding-right: 10px}
+        .edit-content-right{height: 40px;width: 400px;float: left}
         #edit-foot{height: 50px;}
-        #edit-foot-left{height: 50px;width: 600px;float: left}
+        #edit-foot-left{height: 50px;width: 400px;float: left}
         #edit-foot-right{height: 50px;width: 180px;float: left}
         .edit-foot-btn{width: 74px;margin: 0 5px}
 
-        .item{height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        .item{height: 45px;line-height: 45px;border-bottom: 2px solid #f6f6f6;}
+        .item:hover{background-color: #f8f8f9;}
         .item-check{width: 5%;float: left;}
         .item-id{width: 5%;float: left;}
         .item-name{width: 10%;float: left;}
-        .item-args{width: 45%;float: left;}
+        .item-script{width: 10%;float: left;}
+        .item-node{width: 10%;float: left;}
         .item-date{width: 15%;float: left;}
-        .item-action{width: 15%;float: left;}
-        #item-header{background: #9dc1d3;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        .item-action{width: 20%;float: left;}
+        #item-header{background: #f8f8f9;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
         .header-btn{width: 74px;height: 28px;font-size: 12px;}
         .action-btn{height: 28px;font-size: 12px;}
     </style>
@@ -44,24 +49,37 @@
 <div id="edit" class="borders">
     <input id="input-id" hidden="hidden">
     <div id="edit-header">
-        <div id="edit-header-title">新增脚本</div>
+        <div id="edit-header-title">新增项目</div>
         <div id="edit-header-close"><button type="button" class="btn btn-link"  onclick="editClose(false)"><i class="fa fa-times"></i></button></div>
     </div>
     <div id="edit-content">
         <div class="edit-content-line">
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>脚本名称</span>
-                </div>
+            <div class="edit-content-left"><i style="color: red">*&nbsp;</i>项目名称</div>
+            <div class="edit-content-right">
                 <input id="input-name" type="text" class="form-control" placeholder="" >
             </div>
         </div>
         <div class="edit-content-line">
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>参数</span>
-                </div>
-                <input id="input-args" type="text" class="form-control" placeholder="" >
+            <div class="edit-content-left">
+                <i style="color: red">*&nbsp;</i>脚本
+                <i class="fa fa-question-circle" title="脚本"></i>
+            </div>
+            <div class="edit-content-right">
+                <select class="custom-select mr-sm-2" id="input-script">
+                    <option value="1">One</option>
+                    <option value="2">Two</option>
+                    <option value="3">Three</option>
+                </select>
+            </div>
+        </div>
+        <div class="edit-content-line">
+            <div class="edit-content-left"><i style="color: red">*&nbsp;</i>节点</div>
+            <div class="edit-content-right">
+                <select class="custom-select mr-sm-2" id="input-node">
+                    <option value="1">One</option>
+                    <option value="2">Two</option>
+                    <option value="3">Three</option>
+                </select>
             </div>
         </div>
     </div>
@@ -73,13 +91,13 @@
         </div>
     </div>
 </div>
+
 <div id="body" class="borders">
-    <div id="header" class="borders">
-        <div id="header-title">脚本管理</div>
+    <div id="header">
+        <div id="header-title">项目管理</div>
         <div id="header-foot">
             <button type="button" class="btn header-btn btn-primary" onclick="editOpen(null)"><i class="fa fa-plus"></i><span>新增</span></button>
-            <button type="button" class="btn header-btn btn-success" disabled="disabled"><i class="fa fa-edit"></i><span>修改</span></button>
-            <button type="button" class="btn header-btn btn-danger batch-btn" disabled="disabled" onclick="scriptDelete(0)"><i class="fa fa-trash-o"></i><span>删除</span></button>
+            <button type="button" class="btn header-btn btn-danger batch-btn" disabled="disabled" onclick="itemDelete(0)"><i class="fa fa-trash-o"></i><span>删除</span></button>
         </div>
     </div>
     <div id="content">
@@ -87,7 +105,8 @@
             <div class="item-check"><input type="checkbox" id="checkAll" onclick="checkAllState(this.checked)" class="checkbox"></div>
             <div class="item-id">ID</div>
             <div class="item-name">名称</div>
-            <div class="item-args">参数</div>
+            <div class="item-script">脚本</div>
+            <div class="item-node">节点</div>
             <div class="item-date">时间</div>
             <div class="item-action">&nbsp;&nbsp;&nbsp;操作</div>
         </div>
@@ -100,33 +119,99 @@
 <script src="../js/util.js"></script>
 <script>
 
+    let node = null;
+    let script = null;
+    let signals = new Map();
+
     window.onload = function () {
-        scriptGet();
+        signals.set("term","term");
+        signals.set("kill","kill");
+        signals.set("user1","user1");
+        signals.set("user2","user2");
+        console.log(signals);
+        get();
     };
 
+    function get() {
+        scriptGet();
+        nodeGet();
+        itemGet();
+    }
+
     function scriptGet() {
+        script = new Map();
+        let tmp = `<option value="{0}">{1}</option>`;
+        let list = document.getElementById('input-script');
+        list.innerHTML = "";
+        util.httpGet(httpAddr+"/script/get",function (res) {
+            if (res.ok) {
+                let str ="";
+                for (let key in res.data) {
+                    let item = res.data[key];
+                    str += util.format(tmp, item.id, util.format("{0}({1})",item.name,item.id));
+                    script.set(item.id,item.name)
+                }
+                list.innerHTML = str;
+                list.value = "";
+                console.log("script",script)
+            } else {
+                showTips("请求错误", 1000)
+            }
+        },function (e) {
+            console.log("err",e);
+            showTips("网络错误！",1000)
+        });
+    }
+
+    function nodeGet() {
+        node = new Map();
+        let tmp = `<option value="{0}">{0}</option>`;
+        let list = document.getElementById('input-node');
+        list.innerHTML = "";
+        util.httpGet(httpAddr+"/node/get?name=list",function (res) {
+            if (res.ok) {
+                let str ="";
+                for (let i = 0;i < res.total;i++){
+                    str += util.format(tmp,res.data[i]);
+                    node.set(res.data[i],res.data[i])
+                }
+                list.innerHTML = str;
+                list.value = "";
+                console.log("node",node)
+            } else {
+                showTips(res.message, 1000)
+            }
+        },function (e) {
+            console.log("err",e);
+            showTips("网络错误！",1000)
+        });
+    }
+
+    function itemGet() {
         let tmp = `<div class="item">
                 <div class="item-check"><input type="checkbox" value="{0}" name="checkbox" class="checkbox" onclick="checkState(this.checked)" ></div>
                 <div class="item-id">{0}</div>
                 <div class="item-name">{1}</div>
-                <div class="item-args">{2}</div>
-                <div class="item-date">{3}</div>
+                <div class="item-script">{2}</div>
+                <div class="item-node">{3}<i>*</i></div>
+                <div class="item-date">{4}</div>
                 <div class="item-action">
-                    <button type="button" class="btn action-btn btn-link" onclick="editOpen(this)"><i class="fa fa-edit"></i><span>修改</span></button>
-                    <button type="button" class="btn action-btn btn-link" onclick="scriptDelete({0})"><i class="fa fa-trash-o"></i><span>删除</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="cmdStart({0})"><span>启动</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'term')"><span>停止</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'kill')"><span>Kill</span></button>
                 </div>
             </div>`;
 
         let list = document.getElementById('item-list');
         list.innerHTML = "";
-        util.httpGet(httpAddr+"/script/get",function (res) {
+        util.httpGet(httpAddr+"/item/get",function (res) {
             if (res.ok) {
                 console.log(res);
                 let str = "";
                 for (let key in res.data) {
                     let item = res.data[key];
                     console.log(key, item);
-                    str += util.format(tmp, item.id, item.name, item.args, item.date)
+                    str += util.format(tmp, item.id, item.name, item.script,item.slave, item.date)
                 }
                 list.innerHTML = str;
             } else {
@@ -139,8 +224,8 @@
     }
 
     // id 传入脚本Id。当Id ==0 时，为批量操作。
-    function scriptDelete(id) {
-        let reqUrl = httpAddr + "/script/delete";
+    function itemDelete(id) {
+        let reqUrl = httpAddr + "/item/delete";
         let ids = [];
         if (id ===0){
             let chk_list = document.getElementsByName("checkbox");
@@ -158,7 +243,7 @@
             util.httpPost(reqUrl,JSON.stringify(cmd),function (res) {
                 if (res.ok) {
                     showTips("成功",2000);
-                    scriptGet();
+                    get();
                 }else {
                     showTips(res.message,2000)
                 }
@@ -169,57 +254,10 @@
         }
     }
 
-    // 全部选中，checkAll状态为true。 有一个选中批量操作按钮可点击，否则不能
-    function checkState(isChecked) {
-        let chk_list = document.getElementsByName("checkbox");
-        let checkedNum = 0;
-        for(let i=0;i<chk_list.length;i++){
-            if (chk_list[i].checked){
-                checkedNum++
-            }
-        }
-
-        if (checkedNum === chk_list.length){
-            document.getElementById("checkAll").checked = true;
-        }else {
-            document.getElementById("checkAll").checked = false;
-        }
-
-        let batchBtn = document.getElementsByClassName("batch-btn");
-        if (checkedNum === 0){
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = true
-            }
-        }else {
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = false
-            }
-        }
-
-    }
-
-    function checkAllState(isChecked){
-        let chk_list = document.getElementsByName("checkbox");
-        for(let i=0;i<chk_list.length;i++){
-            chk_list[i].checked=isChecked;
-        }
-
-        let batchBtn = document.getElementsByClassName("batch-btn");
-        if (!isChecked){
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = true
-            }
-        }else {
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = false
-            }
-        }
-    }
-
     // arg == null 时，新增。 否则为修改
     function editOpen(arg) {
         if (arg){
-            document.getElementById("edit-header-title").innerHTML = "修改脚本";
+            document.getElementById("edit-header-title").innerHTML = "修改项目";
             console.log(arg);
             let parent = arg.parentElement.parentElement;
             let nodes = parent.children;
@@ -227,7 +265,7 @@
             document.getElementById("input-name").value = nodes[2].innerHTML;
             document.getElementById("input-args").value = nodes[3].innerHTML;
         }else {
-            document.getElementById("edit-header-title").innerHTML = "新增脚本"
+            document.getElementById("edit-header-title").innerHTML = "新增项目"
         }
         shadowShow();
         document.getElementById("edit").style.display = "block";
@@ -237,12 +275,19 @@
     function editClose(confirm) {
         let id = document.getElementById("input-id");
         let name = document.getElementById("input-name");
-        let args = document.getElementById("input-args");
+        let sc = document.getElementById("input-script");
+        let n = document.getElementById("input-node");
+
+        console.log(id.value,name.value,sc.value,n.value);
         if (confirm){
+            if (name.value === "" || sc.value === "" || n.value === ""){
+                showTips("请填写完整",1000);
+                return
+            }
             let reqUrl =  "";
-            let cmd = {name:name.value,args:args.value};
+            let cmd = {name:name.value,script:parseInt(sc.value),slave:n.value};
             if (id.value === ""){
-                reqUrl = httpAddr + "/script/create"
+                reqUrl = httpAddr + "/item/create"
             }else {
                 reqUrl = httpAddr + "/script/update";
                 cmd.id = parseInt(id.value)
@@ -251,7 +296,7 @@
             util.httpPost(reqUrl,JSON.stringify(cmd),function (res) {
                 if (res.ok) {
                     showTips("成功",2000);
-                    scriptGet();
+                    get();
                 }else {
                     showTips(res.message,2000)
                 }
@@ -260,12 +305,43 @@
                 showTips("网络错误！",2000)
             })
         }
+
         shadowClose();
         document.getElementById("edit").style.display = "none";
 
         id.value = "";
         name.value = "";
-        args.value = "";
+        sc.value = "";
+        n.value = "";
+    }
+
+    function cmdStart(id) {
+        let reqUrl = httpAddr + "/itemCmd/start";
+        util.httpPost(reqUrl,JSON.stringify({id:id}),function (res) {
+            if (res.ok) {
+                showTips("成功",2000);
+            }else {
+                showTips(res.message,2000)
+            }
+        },function (e) {
+            console.log(11,e);
+            showTips("网络错误！",2000)
+        })
+    }
+
+
+    function cmdSignal(id,signal) {
+        let reqUrl = httpAddr + "/itemCmd/signal";
+        util.httpPost(reqUrl,JSON.stringify({id:id,signal:signal}),function (res) {
+            if (res.ok) {
+                showTips("成功",2000);
+            }else {
+                showTips(res.message,2000)
+            }
+        },function (e) {
+            console.log(11,e);
+            showTips("网络错误！",2000)
+        })
     }
 </script>
 </body>

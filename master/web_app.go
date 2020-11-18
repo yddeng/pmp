@@ -7,11 +7,13 @@ import (
 	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
+	"path"
+	"strconv"
 	"time"
 )
 
@@ -50,14 +52,19 @@ func WebAppStart() {
 	hServer.HandleFuncJson("/itemCmd/start", &itemCmd{}, itemCmdStart)
 	hServer.HandleFuncJson("/itemCmd/signal", &itemCmd{}, itemCmdSignal)
 
+	hServer.HandleFuncUrlParam("/file/get", fileGet)
+	hServer.HandleFuncUrlParam("/file/delete", fileDelete)
+	hServer.HandleFuncUrlParam("/file/download", fileDownload)
+	hServer.HandleFunc("/file/update", fileUpdate)
+
 	if err := hServer.Listen(); err != nil {
 		util.Logger().Errorf(err.Error())
 	}
 }
 
 type resultCode struct {
-	Ok      bool   `json:"ok,omitempty"`
-	Message string `json:"message,omitempty"`
+	Ok      bool   `json:"ok"`
+	Message string `json:"message"`
 }
 
 func respResult(w http.ResponseWriter, ok bool, message string) {
@@ -71,10 +78,10 @@ func respResult(w http.ResponseWriter, ok bool, message string) {
 }
 
 type resultData struct {
-	Ok    bool        `json:"ok,omitempty"`
-	Total int         `json:"total,omitempty"`
-	Count int         `json:"count,omitempty"`
-	Data  interface{} `json:"data,omitempty"`
+	Ok    bool        `json:"ok"`
+	Total int         `json:"total"`
+	Count int         `json:"count"`
+	Data  interface{} `json:"data"`
 }
 
 func respData(w http.ResponseWriter, ok bool, total, count int, data interface{}) {
@@ -110,7 +117,6 @@ func scriptCreate(w http.ResponseWriter, msg interface{}) {
 	req := msg.(*script)
 	req.ID = scriptPtr.genID()
 	req.Date = time.Now().Format(core.TimeFormat)
-	req.Args = strings.ReplaceAll(req.Args, "&", " ")
 	scriptPtr.set(req.ID, req)
 	respResult(w, true, "")
 }
@@ -123,7 +129,6 @@ func scriptUpdate(w http.ResponseWriter, msg interface{}) {
 		return
 	}
 	req.Date = time.Now().Format(core.TimeFormat)
-	req.Args = strings.ReplaceAll(req.Args, "&", " ")
 	scriptPtr.set(req.ID, req)
 	respResult(w, true, "")
 }
@@ -306,7 +311,300 @@ func itemCmdSignal(w http.ResponseWriter, msg interface{}) {
 
 /***************************** 项目操作 end ******************************************/
 
+/***************************** 通知 start ******************************************/
 type notify struct {
 	Type string `json:"type"`
 	Url  string `json:"url"`
 }
+
+/***************************** 通知 end ******************************************/
+
+/***************************** 文件管理 start ******************************************/
+
+type fileNode struct {
+	Filename string `json:"filename"`
+	IsDir    bool   `json:"is_dir"`
+	Size     int64  `json:"size"`
+	Date     string `json:"date"`
+}
+
+/*
+ * 获取目录下文件， 正在上传的文件不显示。
+ * path -> 获取文件路径
+ */
+func fileGet(w http.ResponseWriter, msg interface{}) {
+	req := msg.(url.Values)
+	filePath := req.Get("path")
+	util.Logger().Debugln("fileGet", filePath)
+
+	info, ok := filePtr.filePath(filePath, false)
+	if !ok {
+		respData(w, false, 0, 0, nil)
+		return
+	}
+
+	data := map[string]fileNode{}
+	for _, info := range info.FileInfos {
+		// 正在上传中的文件不同步
+		if info.UploadInfo == nil {
+			data[info.Name] = fileNode{
+				Filename: info.Name,
+				IsDir:    info.IsDir,
+				Size:     info.Size,
+				Date:     info.Date,
+			}
+		}
+	}
+	respData(w, true, len(data), len(data), data)
+}
+
+/*
+ * 删除文件，文件夹。
+ * path -> 文件路径
+ * filename -> 文件名，文件夹名。
+ */
+func fileDelete(w http.ResponseWriter, msg interface{}) {
+	req := msg.(url.Values)
+	filePath := req.Get("path")
+	filename := req.Get("filename")
+	util.Logger().Debugln("fileDelete", filePath, filename)
+
+	if filename == "" {
+		respResult(w, false, "filename is nil")
+		return
+	}
+
+	info, ok := filePtr.filePath(filePath, false)
+	if !ok {
+		respData(w, false, 0, 0, nil)
+		return
+	}
+
+	filePtr.mtx.RLock()
+	file, ok := info.FileInfos[filename]
+	fileAbs := path.Join(file.Path, file.Name)
+	filePtr.mtx.RUnlock()
+	if !ok {
+		respResult(w, false, "filename is not exist")
+		return
+	}
+
+	// 删除本地文件
+	util.Logger().Debugln("fileDelete", fileAbs)
+	if err := os.RemoveAll(fileAbs); err != nil {
+		util.Logger().Errorln(err)
+	}
+
+	filePtr.mtx.Lock()
+	delete(info.FileInfos, filename)
+	writeFileFile()
+	filePtr.mtx.Unlock()
+
+	respResult(w, true, "")
+}
+
+type fileUpdateResp struct {
+	Code   int      `json:"code"` // 0->ok, 1-> 操作失败, 2->需要上传,3->不需要上传 ,
+	Upload []string `json:"upload"`
+}
+
+func respFileUpdate(w http.ResponseWriter, code int, up []string) {
+	ret := &fileUpdateResp{
+		Code:   code,
+		Upload: up,
+	}
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		util.Logger().Errorf(err.Error())
+	}
+}
+
+/*
+ * 文件上传，创建路径。
+ * path -> 文件路径
+ * filename -> 文件名。当filename为空时，仅创建文件夹。
+ * file -> 文件分片。
+ * total -> 文件总分片数。
+ * current -> 当前文件分片。当 current == 0，验证文件存在，断点续传。
+ * md5 -> 文件md5值。比对文件变化。
+ */
+func fileUpdate(w http.ResponseWriter, r *http.Request) {
+	filePath := r.FormValue("path")
+	filename := r.FormValue("filename")
+
+	util.Logger().Infoln("fileUpdate", filePath, filename, r.Form)
+
+	info, ok := filePtr.filePath(filePath, true)
+	if !ok {
+		respFileUpdate(w, 1, nil)
+		return
+	}
+
+	if filename == "" {
+		respFileUpdate(w, 0, nil)
+		return
+	}
+
+	md5 := r.FormValue("md5")
+	current := r.FormValue("current")
+	total := r.FormValue("total")
+	totalInt, err := strconv.Atoi(total)
+	if err != nil {
+		respFileUpdate(w, 1, nil)
+		return
+	}
+
+	filePtr.mtx.RLock()
+	file, ok := info.FileInfos[filename]
+	// 判断是否有分片已经上传
+	if current == "0" {
+		if !ok {
+			respFileUpdate(w, 2, nil)
+		} else {
+			// 对比md5,不同
+			if file.MD5 != md5 {
+				// 清理上传的分片
+				if file.UploadInfo != nil {
+					for id := range file.UploadInfo.UpLoad {
+						filePtr.mtx.RUnlock()
+						tmpFilename := file.makeSliceFilename(id)
+						err := os.Remove(tmpFilename)
+						if err != nil {
+							util.Logger().Errorf(err.Error())
+						}
+						filePtr.mtx.RLock()
+					}
+				}
+				fileAbs := path.Join(file.Path, file.Name)
+				filePtr.mtx.RUnlock()
+
+				// 清理文件
+				err := os.Remove(fileAbs)
+				if err != nil {
+					util.Logger().Errorf(err.Error())
+				}
+
+				filePtr.mtx.Lock()
+				delete(info.FileInfos, filename)
+				writeFileFile()
+				filePtr.mtx.Unlock()
+
+				respFileUpdate(w, 2, nil)
+			} else {
+				// 文件已经上传成功
+				if file.UploadInfo == nil {
+					filePtr.mtx.RUnlock()
+					respFileUpdate(w, 3, nil)
+				} else {
+					// 切片数量改变
+					if file.UploadInfo.Total != totalInt {
+						filePtr.mtx.RUnlock()
+						filePtr.mtx.Lock()
+						file.UploadInfo = nil
+						writeFileFile()
+						filePtr.mtx.Unlock()
+						respFileUpdate(w, 2, nil)
+					} else {
+						// 已有分片存在
+						exist := []string{}
+						for id := range file.UploadInfo.UpLoad {
+							exist = append(exist, id)
+						}
+						respFileUpdate(w, 2, exist)
+						filePtr.mtx.RUnlock()
+					}
+				}
+			}
+			filePtr.mtx.RLock()
+		}
+		filePtr.mtx.RUnlock()
+		return
+	}
+
+	if !ok {
+		file = &fileInfo{
+			Path: path.Join(info.Path, info.Name),
+			Name: filename,
+			MD5:  md5,
+			UploadInfo: &uploadInfo{
+				Total:  totalInt,
+				UpLoad: map[string]struct{}{},
+			},
+		}
+		filePtr.mtx.RUnlock()
+		filePtr.mtx.Lock()
+		info.FileInfos[file.Name] = file
+		writeFileFile()
+		filePtr.mtx.Unlock()
+		filePtr.mtx.RLock()
+	}
+
+	defer file.tryMerge()
+
+	_, ok = file.UploadInfo.UpLoad[current]
+	if ok {
+		// 当前分片已经上传
+		respFileUpdate(w, 0, nil)
+		filePtr.mtx.RUnlock()
+		return
+	}
+	filePtr.mtx.RUnlock()
+
+	gFile, _, err := r.FormFile("file")
+	if err != nil {
+		util.Logger().Errorln(err)
+		respFileUpdate(w, 1, nil)
+		return
+	}
+	defer gFile.Close()
+
+	tmpFilename := file.makeSliceFilename(current)
+	if err = util.WriteFile(tmpFilename, gFile); err != nil {
+		util.Logger().Debugln(err.Error())
+		respFileUpdate(w, 1, nil)
+		return
+	}
+
+	filePtr.mtx.Lock()
+	file.UploadInfo.UpLoad[current] = struct{}{}
+	writeFileFile()
+	filePtr.mtx.Unlock()
+
+	respFileUpdate(w, 0, nil)
+
+}
+
+/*
+ * 文件下载
+ * path -> 文件路径
+ * filename -> 文件名。
+ */
+func fileDownload(w http.ResponseWriter, msg interface{}) {
+	req := msg.(url.Values)
+	filePath := req.Get("path")
+	filename := req.Get("filename")
+	util.Logger().Debugln("fileDownload", filePath, filename)
+
+	//打开文件
+	fileAbs := path.Join(filePath, filename)
+	file, err := os.Open(fileAbs)
+	if err != nil {
+		util.Logger().Errorln(err)
+		respResult(w, false, fileAbs+" not exist")
+		return
+	}
+	//结束后关闭文件
+	defer file.Close()
+
+	//设置响应的header头
+	w.Header().Add("Content-type", "application/octet-stream")
+	w.Header().Add("content-disposition", "attachment; filename=\""+filename+"\"")
+	//将文件写至responseBody
+	_, err = io.Copy(w, file)
+	if err != nil {
+		util.Logger().Errorln(err)
+		respResult(w, false, err.Error())
+		return
+	}
+}
+
+/***************************** 文件管理 end ******************************************/

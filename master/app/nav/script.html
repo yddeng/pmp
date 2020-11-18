@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="../lib/font-awesome/css/font-awesome.min.css">
     <style>
         *{ margin: 0; padding: 0;font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
-        #body{margin:5px 10px;height: 100%}
-        #header{height: 100px;margin-bottom: 10px}
+        body{min-width: 1500px;}
+        #body{margin:5px 10px;height: 100%;}
+        #header{height: 100px;padding-top:10px;margin-bottom: 10px}
         #header-title{height: 60px;}
         #header-foot{height: 30px;}
 
@@ -21,19 +22,22 @@
         #edit-header-close{height: 50px;width: 40px;float: left;line-height: 50px}
         #edit-content{height: 200px;}
         .edit-content-line{height: 40px;margin-bottom: 10px}
+        .edit-content-left{height: 40px;width: 120px;float: left;line-height: 40px;text-align: right;padding-right: 10px}
+        .edit-content-right{height: 40px;width: 600px;float: left}
         #edit-foot{height: 50px;}
         #edit-foot-left{height: 50px;width: 600px;float: left}
         #edit-foot-right{height: 50px;width: 180px;float: left}
         .edit-foot-btn{width: 74px;margin: 0 5px}
 
-        .item{height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        .item{height: 45px;line-height: 45px;border-bottom: 2px solid #f6f6f6;}
+        .item:hover{background-color: #f8f8f9;}
         .item-check{width: 5%;float: left;}
         .item-id{width: 5%;float: left;}
         .item-name{width: 10%;float: left;}
         .item-args{width: 45%;float: left;}
         .item-date{width: 15%;float: left;}
         .item-action{width: 15%;float: left;}
-        #item-header{background: #9dc1d3;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
+        #item-header{background: #f8f8f9;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
         .header-btn{width: 74px;height: 28px;font-size: 12px;}
         .action-btn{height: 28px;font-size: 12px;}
     </style>
@@ -49,18 +53,14 @@
     </div>
     <div id="edit-content">
         <div class="edit-content-line">
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>脚本名称</span>
-                </div>
+            <div class="edit-content-left"><i style="color: red">*&nbsp;</i>脚本名称</div>
+            <div class="edit-content-right">
                 <input id="input-name" type="text" class="form-control" placeholder="" >
             </div>
         </div>
         <div class="edit-content-line">
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"><i style="color: red">*&nbsp;</i>参数</span>
-                </div>
+            <div class="edit-content-left"><i style="color: red">*&nbsp;</i>参数</div>
+            <div class="edit-content-right">
                 <input id="input-args" type="text" class="form-control" placeholder="" >
             </div>
         </div>
@@ -74,7 +74,7 @@
     </div>
 </div>
 <div id="body" class="borders">
-    <div id="header" class="borders">
+    <div id="header">
         <div id="header-title">脚本管理</div>
         <div id="header-foot">
             <button type="button" class="btn header-btn btn-primary" onclick="editOpen(null)"><i class="fa fa-plus"></i><span>新增</span></button>
@@ -125,7 +125,6 @@
                 let str = "";
                 for (let key in res.data) {
                     let item = res.data[key];
-                    console.log(key, item);
                     str += util.format(tmp, item.id, item.name, item.args, item.date)
                 }
                 list.innerHTML = str;
@@ -166,53 +165,6 @@
                 console.log(e);
                 showTips("网络错误！",2000)
             })
-        }
-    }
-
-    // 全部选中，checkAll状态为true。 有一个选中批量操作按钮可点击，否则不能
-    function checkState(isChecked) {
-        let chk_list = document.getElementsByName("checkbox");
-        let checkedNum = 0;
-        for(let i=0;i<chk_list.length;i++){
-            if (chk_list[i].checked){
-                checkedNum++
-            }
-        }
-
-        if (checkedNum === chk_list.length){
-            document.getElementById("checkAll").checked = true;
-        }else {
-            document.getElementById("checkAll").checked = false;
-        }
-
-        let batchBtn = document.getElementsByClassName("batch-btn");
-        if (checkedNum === 0){
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = true
-            }
-        }else {
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = false
-            }
-        }
-
-    }
-
-    function checkAllState(isChecked){
-        let chk_list = document.getElementsByName("checkbox");
-        for(let i=0;i<chk_list.length;i++){
-            chk_list[i].checked=isChecked;
-        }
-
-        let batchBtn = document.getElementsByClassName("batch-btn");
-        if (!isChecked){
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = true
-            }
-        }else {
-            for (let i =0;i < batchBtn.length;i++){
-                batchBtn[i].disabled = false
-            }
         }
     }
 

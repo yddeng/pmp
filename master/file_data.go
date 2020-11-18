@@ -1,10 +1,16 @@
 package master
 
 import (
+	"fmt"
 	"github.com/yddeng/dutil/io"
+	"github.com/yddeng/gsf/util/time"
 	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/util"
+	io2 "io"
+	"os"
 	"path"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -135,4 +141,158 @@ func (this *itemFile) delete(key int32) {
 	defer this.mtx.Unlock()
 	delete(this.Items, key)
 	writeItemFile()
+}
+
+// 文件管理
+
+var (
+	filePtr      *fileFile
+	fileInfoName = "fileInfo.json"
+	fileFilename string
+)
+
+type fileFile struct {
+	mtx      sync.RWMutex `json:"-"`
+	FileInfo *fileInfo    `json:"file_info"`
+}
+
+func (this *fileFile) splitDir(dir string) []string {
+	paths := strings.Split(dir, "/")
+	l := []string{}
+	for _, v := range paths {
+		if v != "" {
+			l = append(l, v)
+		}
+	}
+	return l
+}
+
+func (this *fileFile) filePath(filePath string, mkdir bool) (*fileInfo, bool) {
+	paths := this.splitDir(filePath)
+	//if len(paths) < 1 {
+	//	return nil, false
+	//}
+
+	filePtr.mtx.Lock()
+	defer filePtr.mtx.Unlock()
+
+	info := filePtr.FileInfo
+	for i := 1; i < len(paths); i++ {
+		dname := paths[i]
+		cInfo, ok := info.FileInfos[dname]
+		if ok {
+			if !cInfo.IsDir {
+				return nil, false
+			}
+		} else {
+			cInfo = &fileInfo{
+				Path:      path.Join(info.Path, info.Name),
+				Name:      dname,
+				IsDir:     true,
+				FileInfos: map[string]*fileInfo{},
+			}
+			_ = os.MkdirAll(path.Join(cInfo.Path, cInfo.Name), os.ModePerm)
+			info.FileInfos[cInfo.Name] = cInfo
+			writeFileFile()
+		}
+		info = cInfo
+	}
+	return info, true
+}
+
+type fileInfo struct {
+	Path       string               `json:"path"`
+	Name       string               `json:"name,omitempty"`
+	IsDir      bool                 `json:"is_dir,omitempty"`
+	Size       int64                `json:"size,omitempty"`       // 文件夹为0
+	MD5        string               `json:"md5,omitempty"`        // 文价夹为空
+	Date       string               `json:"date,omitempty"`       // 文价夹为空
+	FileInfos  map[string]*fileInfo `json:"file_info"`            // dir -> fileInfo 。 只有是文件夹才有值
+	UploadInfo *uploadInfo          `json:"uploadInfo,omitempty"` // 为空时，表示文件传输完成已合并文件
+}
+
+func (this *fileInfo) makeSliceFilename(crt string) string {
+	return fmt.Sprintf("%s.part%s", path.Join(this.Path, this.Name), crt)
+}
+
+type uploadInfo struct {
+	Total  int                 `json:"total"`
+	UpLoad map[string]struct{} `json:"up_load"` // 已经上传的切片
+}
+
+func (this *fileInfo) tryMerge() {
+	filePtr.mtx.RLock()
+	// 合并分片
+	if this.UploadInfo == nil {
+		filePtr.mtx.RUnlock()
+		return
+	}
+
+	if this.UploadInfo.Total == len(this.UploadInfo.UpLoad) {
+		filename := path.Join(this.Path, this.Name)
+		filePtr.mtx.RUnlock()
+		f, err := os.Create(filename)
+		if err != nil {
+			util.Logger().Errorf(err.Error())
+			return
+		}
+		size := int64(0)
+		filePtr.mtx.RLock()
+		for i := 1; i <= this.UploadInfo.Total; i++ {
+			tmpFilename := this.makeSliceFilename(strconv.Itoa(i))
+			filePtr.mtx.RUnlock()
+			tf, err := os.Open(tmpFilename)
+			if err != nil {
+				util.Logger().Errorf(err.Error())
+				return
+			}
+
+			written, err := io2.Copy(f, tf)
+			_ = tf.Close()
+			if err != nil {
+				util.Logger().Errorf(err.Error())
+				return
+			}
+
+			_ = os.Remove(tmpFilename)
+			size += written
+			util.Logger().Infof("input %s from %s written %d", this.Name, tmpFilename, written)
+			filePtr.mtx.RLock()
+		}
+		_ = f.Close()
+
+		filePtr.mtx.RUnlock()
+		filePtr.mtx.Lock()
+		this.UploadInfo = nil
+		this.Date = time.Now().Format(core.TimeFormat)
+		this.Size = size
+		writeFileFile()
+		filePtr.mtx.Unlock()
+		return
+	}
+
+	filePtr.mtx.RUnlock()
+}
+
+func loadFileFile() {
+	fileFilename = path.Join(core.DataPath, fileInfoName)
+	filePtr = &fileFile{
+		mtx: sync.RWMutex{},
+		FileInfo: &fileInfo{
+			Path:      "",
+			Name:      core.SharedPath,
+			IsDir:     true,
+			FileInfos: map[string]*fileInfo{},
+		},
+	}
+
+	if err := io.DecodeJsonFromFile(filePtr, fileFilename); err != nil {
+		util.Logger().Errorf(err.Error())
+	}
+}
+
+func writeFileFile() {
+	if err := io.EncodeJsonToFile(filePtr, fileFilename); err != nil {
+		util.Logger().Errorf(err.Error())
+	}
 }

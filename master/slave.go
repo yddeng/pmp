@@ -124,11 +124,13 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 	slavePtr.set(slave.name, slave)
 	slave.session.SetContext(slave)
 
-	go func() {
-		if err := getAndSyncAll(slave); err != nil {
-			slave.session.Close(err.Error())
-		}
-	}()
+	if name != "master" {
+		go func() {
+			if err := getAndSyncAll(slave); err != nil {
+				slave.session.Close(err.Error())
+			}
+		}()
+	}
 	replyer.Reply(&protocol.LoginResp{}, nil)
 }
 

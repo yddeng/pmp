@@ -23,7 +23,9 @@ func loadExecInfo() {
 	delInfos := []int32{}
 	if err := io.DecodeJsonFromFile(&execInfos, filename); err == nil {
 		for id, info := range execInfos {
-			if !info.isAlive() {
+			isAlive := info.isAlive()
+			util.Logger().Infof("loadExecInfo %v isAlive:%v", info, isAlive)
+			if !isAlive {
 				delInfos = append(delInfos, id)
 			}
 		}

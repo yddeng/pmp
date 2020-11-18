@@ -8,6 +8,7 @@ import (
 	"github.com/yddeng/pmp/net"
 	"github.com/yddeng/pmp/net/pb"
 	"github.com/yddeng/pmp/protocol"
+	slave2 "github.com/yddeng/pmp/slave"
 	"github.com/yddeng/pmp/util"
 )
 
@@ -92,8 +93,11 @@ func Launch() {
 	initHandler()
 	loadScriptFile()
 	loadItemFile()
+	loadFileFile()
 
 	if err := startListener(); err != nil {
 		panic(err)
 	}
+
+	slave2.Launch("master", getConfig().Service)
 }

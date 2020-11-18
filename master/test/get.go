@@ -29,7 +29,7 @@ func main() {
 	}
 
 	{
-		reqUrl := fmt.Sprintf("%s/node/get?n=list", url)
+		reqUrl := fmt.Sprintf("%s/node/get?name=list", url)
 		req, _ := dhttp.Get(reqUrl)
 		var resp map[string]interface{}
 		if err := req.ToJSON(&resp); err != nil {

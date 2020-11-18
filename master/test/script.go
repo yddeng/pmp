@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/yddeng/dnet/dhttp"
+	"strings"
 )
 
 var url = "http://127.0.0.1:23455/script"
@@ -22,7 +23,7 @@ func main() {
 		reqUrl := fmt.Sprintf("%s/create", url)
 		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
 			"name": name,
-			"args": args,
+			"args": strings.ReplaceAll(args, "&", " "),
 		})
 		err = req.ToJSON(&resp)
 	case 2:
@@ -34,7 +35,7 @@ func main() {
 		req, _ := dhttp.PostJson(reqUrl, map[string]interface{}{
 			"id":   id,
 			"name": name,
-			"args": args,
+			"args": strings.ReplaceAll(args, "&", " "),
 		})
 		err = req.ToJSON(&resp)
 	case 3:
