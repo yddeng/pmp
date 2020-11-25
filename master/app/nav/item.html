@@ -29,18 +29,19 @@
         #edit-foot-right{height: 50px;width: 180px;float: left}
         .edit-foot-btn{width: 74px;margin: 0 5px}
 
-        .item{height: 45px;line-height: 45px;border-bottom: 2px solid #f6f6f6;}
-        .item:hover{background-color: #f8f8f9;}
-        .item-check{width: 5%;float: left;}
-        .item-id{width: 5%;float: left;}
-        .item-name{width: 10%;float: left;}
-        .item-script{width: 10%;float: left;}
+        .item{height: 60px;line-height: 60px;border-bottom: 2px solid #f6f6f6;}
+        .item:hover{background-color: #f8f8f9;cursor: pointer}
+        .item-check{width: 40px;float: left;}
+        .item-id{width: 50px;float: left;}
+        .item-name{width: 15%;float: left;}
+        .item-script{width: 5%;float: left;}
         .item-node{width: 10%;float: left;}
         .item-date{width: 15%;float: left;}
-        .item-action{width: 20%;float: left;}
+        .item-info{width: 25%;float: left;}
+        .item-action{float: left;}
         #item-header{background: #f8f8f9;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
         .header-btn{width: 74px;height: 28px;font-size: 12px;}
-        .action-btn{height: 28px;font-size: 12px;}
+        .action-btn{font-size: 12px;}
     </style>
 </head>
 <body>
@@ -66,9 +67,6 @@
             </div>
             <div class="edit-content-right">
                 <select class="custom-select mr-sm-2" id="input-script">
-                    <option value="1">One</option>
-                    <option value="2">Two</option>
-                    <option value="3">Three</option>
                 </select>
             </div>
         </div>
@@ -76,9 +74,6 @@
             <div class="edit-content-left"><i style="color: red">*&nbsp;</i>节点</div>
             <div class="edit-content-right">
                 <select class="custom-select mr-sm-2" id="input-node">
-                    <option value="1">One</option>
-                    <option value="2">Two</option>
-                    <option value="3">Three</option>
                 </select>
             </div>
         </div>
@@ -97,7 +92,7 @@
         <div id="header-title">项目管理</div>
         <div id="header-foot">
             <button type="button" class="btn header-btn btn-primary" onclick="editOpen(null)"><i class="fa fa-plus"></i><span>新增</span></button>
-            <button type="button" class="btn header-btn btn-danger batch-btn" disabled="disabled" onclick="itemDelete(0)"><i class="fa fa-trash-o"></i><span>删除</span></button>
+            <button type="button" class="btn header-btn btn-danger" disabled="disabled"><i class="fa fa-trash-o"></i><span>删除</span></button>
         </div>
     </div>
     <div id="content">
@@ -105,9 +100,10 @@
             <div class="item-check"><input type="checkbox" id="checkAll" onclick="checkAllState(this.checked)" class="checkbox"></div>
             <div class="item-id">ID</div>
             <div class="item-name">名称</div>
-            <div class="item-script">脚本</div>
-            <div class="item-node">节点</div>
-            <div class="item-date">时间</div>
+            <div class="item-script">脚本ID</div>
+            <div class="item-node">部署节点</div>
+            <div class="item-date">创建时间</div>
+            <div class="item-info">运行状态</div>
             <div class="item-action">&nbsp;&nbsp;&nbsp;操作</div>
         </div>
         <div id="item-list"></div>
@@ -133,12 +129,14 @@
     };
 
     function get() {
-        scriptGet();
-        nodeGet();
-        itemGet();
+        scriptGet(function () {
+            nodeGet(function () {
+                itemGet();
+            });
+        });
     }
 
-    function scriptGet() {
+    function scriptGet(callback) {
         script = new Map();
         let tmp = `<option value="{0}">{1}</option>`;
         let list = document.getElementById('input-script');
@@ -154,6 +152,7 @@
                 list.innerHTML = str;
                 list.value = "";
                 console.log("script",script)
+                callback()
             } else {
                 showTips("请求错误", 1000)
             }
@@ -163,7 +162,7 @@
         });
     }
 
-    function nodeGet() {
+    function nodeGet(callback) {
         node = new Map();
         let tmp = `<option value="{0}">{0}</option>`;
         let list = document.getElementById('input-node');
@@ -178,6 +177,7 @@
                 list.innerHTML = str;
                 list.value = "";
                 console.log("node",node)
+                callback()
             } else {
                 showTips(res.message, 1000)
             }
@@ -193,25 +193,76 @@
                 <div class="item-id">{0}</div>
                 <div class="item-name">{1}</div>
                 <div class="item-script">{2}</div>
-                <div class="item-node">{3}<i>*</i></div>
+                <div class="item-node">{3}</div>
                 <div class="item-date">{4}</div>
+                <div class="item-info">{5}</div>
                 <div class="item-action">
-                    <button type="button" class="btn action-btn btn-link" onclick="cmdStart({0})"><span>启动</span></button>
-                    <button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'term')"><span>停止</span></button>
-                    <button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'kill')"><span>Kill</span></button>
+                    {6}
                 </div>
             </div>`;
+
+        let tmpActionStart =  `<button type="button" class="btn action-btn btn-link" onclick="cmdStart({0})"><span>启动</span></button>`;
+        let tmpActionDelete = `<button type="button" class="btn action-btn btn-link" onclick="itemDelete({0})" style="color: red"><span>删除</span></button>`;
+        let tmpActionRunning = `<button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'term')"><span>停止</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="cmdSignal({0},'kill')"><span>Kill</span></button>
+                    <button type="button" class="btn action-btn btn-link" onclick="itemDelete({0})"><span>信号</span></button>`;
+
+        function makeItem(itemData){
+            let item = itemData.item;
+            let hasNode = node.has(item.slave),
+                hasScript = script.has(item.script),
+                isRunning = false;
+
+            let nodeStr = "";
+            if(hasNode) {
+                nodeStr = util.format(`<span class="badge badge-pill badge-success">{0}</span>`,item.slave)
+            }else {
+                nodeStr = util.format(`<span class="badge badge-pill badge-secondary">{0}</span>`,item.slave)
+            }
+
+            let scriptStr = "";
+            if(hasScript) {
+                scriptStr = util.format(`<span class="badge badge-pill badge-success">{0}</span>`,item.script)
+            }else {
+                scriptStr = util.format(`<span class="badge badge-pill badge-secondary">{0}</span>`,item.script)
+            }
+
+            let runInfo = itemData.run_info;
+            let infoStr = `<span class="badge badge-pill badge-success">Pid:{0}</span><span class="badge badge-pill badge-success">CPU:{1}</span><span class="badge badge-pill badge-success">Mem:{2}</span>`;
+            if (runInfo){
+                if (runInfo.running) {
+                    isRunning = true;
+                    infoStr = util.format(infoStr, runInfo.pid, runInfo.cpuUsed.toFixed(1), runInfo.memUsed.toFixed(1))
+                }else {
+                    infoStr = `<i class="fa fa-times-circle" style="color: red"></i>`;
+                }
+            }else {
+                infoStr = "&nbsp;"
+            }
+
+            let actionStr = "";
+            if (isRunning){
+                actionStr = util.format(tmpActionRunning,item.id)
+            }else {
+                if (hasNode && hasScript){
+                    actionStr += util.format(tmpActionStart,item.id);
+                }
+                actionStr += util.format(tmpActionDelete,item.id)
+            }
+
+
+            return util.format(tmp, item.id, item.name, scriptStr, nodeStr, item.date,infoStr,actionStr)
+        }
 
         let list = document.getElementById('item-list');
         list.innerHTML = "";
         util.httpGet(httpAddr+"/item/get",function (res) {
             if (res.ok) {
-                console.log(res);
                 let str = "";
                 for (let key in res.data) {
-                    let item = res.data[key];
-                    console.log(key, item);
-                    str += util.format(tmp, item.id, item.name, item.script,item.slave, item.date)
+                    let itemData = res.data[key];
+                    console.log(key, itemData);
+                    str += makeItem(itemData)
                 }
                 list.innerHTML = str;
             } else {

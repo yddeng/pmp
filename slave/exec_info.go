@@ -49,7 +49,7 @@ type execInfo struct {
 }
 
 func (this *execInfo) isAlive() bool {
-	if err := syscall.Kill(int(this.Pid), 0); err == nil {
+	if err := syscall.Kill(this.Pid, 0); err == nil {
 		return true
 	}
 	return false

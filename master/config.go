@@ -5,8 +5,11 @@ import (
 )
 
 type Config struct {
-	WebApp  string `toml:"WebApp"`
-	Service string `toml:"Service"`
+	WebApp           string `toml:"WebApp"`
+	WebIndex         string `toml:"WebIndex"`
+	Service          string `toml:"Service"`
+	SliceSize        int    `toml:"SliceSize"`
+	SaveFileMultiple bool   `toml:"SaveFileMultiple"`
 }
 
 var config *Config
@@ -17,6 +20,8 @@ func LoadConfig(path string) *Config {
 	if err != nil {
 		panic(err)
 	}
+	conf.SaveFileMultiple = true
+	conf.SliceSize = 2
 	config = conf
 	return conf
 }

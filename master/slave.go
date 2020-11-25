@@ -9,8 +9,7 @@ import (
 	"github.com/yddeng/pmp/protocol"
 	"github.com/yddeng/pmp/util"
 	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 	"sync"
 )
 
@@ -23,10 +22,34 @@ type slave struct {
 	slaves map[string]*Slave
 }
 
+func (this *slave) allDo(call func(slave2 *Slave), except string) {
+	this.mtx.RLock()
+	for _, s := range this.slaves {
+		if except != "" && s.name != except {
+			this.mtx.RUnlock()
+			call(s)
+			this.mtx.RLock()
+		}
+	}
+	this.mtx.RUnlock()
+}
+
 func (this *slave) getAll() map[string]*Slave {
 	this.mtx.Lock()
 	defer this.mtx.Unlock()
 	return this.slaves
+}
+
+func (this *slave) getRunInfo() map[int32]*protocol.ItemInfo {
+	runInfo := map[int32]*protocol.ItemInfo{}
+	this.mtx.Lock()
+	defer this.mtx.Unlock()
+	for _, s := range this.slaves {
+		for _, v := range s.Report.GetItems() {
+			runInfo[v.GetItemID()] = v
+		}
+	}
+	return runInfo
 }
 
 func (this *slave) get(key string) (*Slave, bool) {
@@ -51,7 +74,6 @@ func (this *slave) delete(key string) {
 type Slave struct {
 	name    string
 	session dnet.Session
-	ok      bool
 	Report  *protocol.Report `json:"report"`
 	mtx     sync.RWMutex
 }
@@ -123,61 +145,63 @@ func onLogin(replyer *drpc.Replyer, req interface{}) {
 	slave.name = name
 	slavePtr.set(slave.name, slave)
 	slave.session.SetContext(slave)
+	replyer.Reply(&protocol.LoginResp{}, nil)
 
 	if name != "master" {
 		go func() {
-			if err := getAndSyncAll(slave); err != nil {
+			filePtr.mtx.RLock()
+			if err := syncAllFile(slave, filePtr.FileInfo); err != nil {
 				slave.session.Close(err.Error())
 			}
+			filePtr.mtx.RUnlock()
 		}()
 	}
-	replyer.Reply(&protocol.LoginResp{}, nil)
 }
 
-func getAndSyncAll(slave *Slave) error {
-	length := net.BuffSize - net.HeadSize - 200
-	err := filepath.Walk(core.SharedPath, func(path string, info os.FileInfo, err error) error {
+func syncAllFile(slave *Slave, info *fileInfo) (err error) {
+	if info == nil {
+		return
+	}
+	for _, cInfo := range info.FileInfos {
+		if cInfo.IsDir {
+			err = syncAllFile(slave, cInfo)
+		} else {
+			err = syncFile(slave, path.Join(cInfo.Path, cInfo.Name))
+		}
 		if err != nil {
-			return err
+			return
 		}
-		if !info.IsDir() {
-			data, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
+	}
+	return
+}
 
-			idx := 0
-			total := len(data)
-			for total > length {
-				file := &protocol.File{
-					FileName: path,
-					B:        data[idx : idx+length],
-					Next:     true,
-					Length:   int32(length),
-				}
-				slave.SendMessage(file, true)
-				idx += length
-				total -= length
-			}
-
-			file := &protocol.File{
-				FileName: path,
-				B:        data[idx:],
-				Length:   int32(total),
-			}
-			slave.SendMessage(file, true)
-
-		}
-		return nil
-	})
+func syncFile(slave *Slave, filename string) error {
+	length := net.BuffSize - net.HeadSize - 200
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
-	slave.SendMessage(&protocol.File{})
-	eventQueue.Push(func() {
-		slave.ok = true
-	})
+	idx := 0
+	total := len(data)
+	for total > length {
+		file := &protocol.File{
+			FileName: filename,
+			B:        data[idx : idx+length],
+			Next:     true,
+			Length:   int32(length),
+		}
+		slave.SendMessage(file, true)
+		idx += length
+		total -= length
+	}
+
+	file := &protocol.File{
+		FileName: filename,
+		B:        data[idx:],
+		Length:   int32(total),
+	}
+	slave.SendMessage(file, true)
 	return nil
 }
 

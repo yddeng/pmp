@@ -6,6 +6,11 @@ import (
 )
 
 func main() {
-	err := os.RemoveAll("ff/tt.go.part*")
+	_, err := os.Open("file.go")
 	fmt.Println(err)
+	_, err = os.Open("file.go")
+	fmt.Println(err)
+	_, err = os.Open("file.go")
+	fmt.Println(err)
+
 }

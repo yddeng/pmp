@@ -2,45 +2,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>文件管理</title>
-    <link rel="stylesheet" href="../css/border.css">
-    <link rel="stylesheet" href="../css/tips.css">
-    <link rel="stylesheet" href="../css/shadow.css">
+    <title>文件云</title>
     <link rel="stylesheet" href="../lib/bootstrap/css/bootstrap.css">
     <link rel="stylesheet" href="../lib/font-awesome/css/font-awesome.min.css">
-    <style>
-        *{ margin: 0; padding: 0;font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
-        body{min-width: 1500px;}
-        .body{padding: 10px 10px;}
-        #content{height: 500px}
-        #nav{height: 40px;line-height: 40px}
-        .header-btn{height: 28px;font-size: 12px;}
-
-        #mouse-right{width: 100px;position: absolute;display: none;background: white;box-shadow: 0 1px 20px rgba(0,0,0,.2);border:2px;border-radius:4px;}
-        #mouse-right div{padding: 5px 10px;}
-        #mouse-right div a{text-decoration: none}
-        #mouse-right div:hover{background: #0e9aef;color: white;cursor: pointer}
-
-        #item-header{background: #f8f8f9;height: 40px;line-height: 40px;border-bottom: 2px solid #f6f6f6;}
-        .item{height: 45px;line-height: 45px;border-bottom: 2px solid #f6f6f6;}
-        .item:hover{background-color: #f8f8f9;cursor: pointer}
-        .item-check{width: 40px;float: left;}
-        .item-name{width: 60%;float: left;}
-        .item-size{width: 15%;float: left;}
-        .item-date{width: 20%;float: left;}
-
-        #update-info{height: 400px;width: 600px;position: absolute;bottom: 0;right: 20px;z-index: 1000;background: white;display: none;}
-        #update-header{height: 50px;border-bottom: 2px solid #f6f6f6;}
-        #update-header-title{height: 50px;width: 520px;float: left;font-size: 18px;line-height: 50px}
-        #update-header-close{height: 50px;width: 40px;float: left;line-height: 50px}
-        #update-list{height: 330px; width: 580px;position: absolute;overflow: auto}
-        .progress-info{position: absolute;width:560px;height:40px;}
-        .progress-name{height: 40px;line-height: 40px;width: 200px;float:left;padding-left: 10px;}
-        .progress-size{height: 40px;line-height: 40px;width: 100px;float:left;}
-        .progress-path{height: 40px;line-height: 40px;width: 150px;float:left;}
-        .progress-width{height: 40px;line-height: 40px;width: 50px;float:left;}
-        .progress{height:40px;margin-top:5px; width: 560px;}
-    </style>
+    <link rel="stylesheet" href="../css/sfdf42dsd.css">
 </head>
 <body>
 <div id="tips" class="tips"><span id="tips-msg"></span></div>
@@ -51,7 +16,7 @@
     <div onclick="fileDownload()">下载该项</div>
 </div>
 
-<input id="path" hidden="hidden" value="shared" />
+<input id="path" hidden="hidden" value="" />
 <input id="upfile" type="file" multiple="multiple" onchange="inputFile()" style="display: none;position: absolute"/>
 <div id="update-info" class="borders">
     <div id="update-header">
@@ -63,12 +28,20 @@
 </div>
 <div class="body">
     <div id="header">
-        <button type="button" class="btn header-btn btn-primary" onclick="upfile.click()"><i class="fa fa-upload"></i><span>&nbsp;上传文件</span></button>
-        <button type="button" class="btn header-btn btn-success" onclick="newFolder()"><i class="fa fa-folder-o"></i><span>&nbsp;新建文件夹</span></button>
-        <button type="button" class="btn header-btn btn-success" onclick="fileDownload()" ><i class="fa fa-download"></i><span>&nbsp;下载文件</span></button>
-        <i id="header-select-btn" style="display: none">
-            <button type="button" class="btn header-btn btn-success"><i class="fa fa-edit"></i><span>&nbsp;离线下载</span></button>
-        </i>
+        <div id="header-left">
+            <button type="button" class="btn header-btn btn-primary" onclick="upfile.click()"><i class="fa fa-upload"></i><span>&nbsp;上传文件</span></button>
+            <button type="button" class="btn header-btn btn-outline-primary" onclick="newFolder()"><i class="fa fa-folder-o"></i><span>&nbsp;新建文件夹</span></button>
+            <button type="button" class="btn header-btn btn-outline-primary" onclick="fileDownload()" ><i class="fa fa-download"></i><span>&nbsp;下载文件</span></button>
+            <i id="header-select-btn" style="display: none">
+                <button type="button" class="btn header-btn btn-success"><i class="fa fa-edit"></i><span>&nbsp;离线下载</span></button>
+            </i>
+        </div>
+        <div id="header-right">
+            <div id="disk-info" style="float: left">0/0&nbsp;</div>
+            <div class="progress" style="height: 16px;width: 200px;float: left">
+                <div class="progress-bar" id="disk-progress" style="width: 0%;">0%</div>
+            </div>
+        </div>
     </div>
     <div id="nav">
         <ol id="path-nav" class="breadcrumb" style="background: white;padding: 0 0;margin: 0 0">
@@ -89,401 +62,9 @@
 </div>
 <script src="../lib/jquery/jquery.js"></script>
 <script src="../js/addr.js"></script>
-<script src="../js/shadow.js"></script>
 <script src="../js/util.js"></script>
+<script src="../js/7d6sgh4a.js"></script>
 <script src="../lib/spark-md5/js/spark-md5.min.js"></script>
-<script>
-    let fileUrl = httpAddr+"/file";
-    let winWidth,winHeight;
-    let mouse;
-    let pathDom;
-    let box;
-
-    window.onload = function() {
-        if (typeof(Worker) !== "undefined") {
-            console.log("浏览器支持HTML5");
-        } else {
-            alert("浏览器不支持HTML5");
-        }
-
-        box = document.getElementById('content');
-        box.addEventListener("dragover",function (e) { // 拖来拖去
-            e.preventDefault();
-        },false);
-        box.addEventListener("dragleave",function(e) { // 拖离
-            e.preventDefault();
-        },false);
-        box.addEventListener("drop",dropEvent,false); // 扔
-
-        //获取可视区宽度
-        winWidth = function(){ return document.documentElement.clientWidth || document.body.clientWidth;};
-        //获取可视区高度
-        winHeight = function (){ return document.documentElement.clientHeight || document.body.clientHeight;};
-
-        mouse = document.getElementById('mouse-right');
-        pathDom = document.getElementById('path');
-        document.addEventListener('click', function() {
-            mouse.style.display = 'none';
-        });
-        //右键菜单
-        document.oncontextmenu = function(event) {
-            var event = event || window.event;
-            mouse.style.display = 'block';
-            var l, t;
-            l = event.clientX;
-            t = event.clientY;
-            if( l >= (winWidth() - mouse.offsetWidth) ) {
-                l  = winWidth() - mouse.offsetWidth;
-            }
-            if(t > winHeight() - mouse.offsetHeight  ) {
-                t = winHeight() - mouse.offsetHeight;
-            }
-            mouse.style.left = l + 'px';
-            mouse.style.top = t + 'px';
-            return false;
-        };
-        refresh()
-    };
-
-    function refresh() {
-        fileGet(pathDom.value)
-    }
-
-    function newFolder() {
-        let tmp = `<div class="item" >
-                <div class="item-check"><input type="checkbox" name="checkbox" class="checkbox"" ></div>
-                <div class="item-name"><input id="folder-name" type="text" class="form-control" style="max-width: 400px" autofocus="autofocus" onblur="mkdir()" onkeydown="if(event.keyCode==13){mkdir()}"/></div>
-                <div class="item-size">-</div>
-                <div class="item-date">-</div>
-            </div>`;
-        let list = document.getElementById('item-list');
-        let str = tmp + list.innerHTML;
-        list.innerHTML = str;
-    }
-
-    function mkdir() {
-        let input = document.getElementById('folder-name');
-        if (input.value === ""){
-            showTips("文件名不能为空",2000);
-            refresh();
-            return;
-        }
-
-        let fd = new FormData();
-        fd.append('path',pathDom.value+"/"+input.value);
-        let reqUrl = fileUrl+"/update";
-        util.httpFormData(reqUrl,fd,function (res) {
-            refresh();
-            if (res.code === 0) {
-                showTips("成功",2000);
-            }else {
-                showTips("操作失败",2000)
-            }
-        },function (e) {
-            console.log(e);
-            refresh();
-            showTips("网络错误！",2000)
-        })
-    }
-
-    function fileDelete() {
-        let chk_list = document.getElementsByName("checkbox");
-        for(let i=0;i<chk_list.length;i++){
-            if (chk_list[i].checked) {
-                let reqUrl = util.format("{0}/delete?path={1}&filename={2}",fileUrl,pathDom.value,chk_list[i].value);
-                console.log(reqUrl);
-                util.httpGet(reqUrl, function (res) {
-                    if (res.ok) {
-                        showTips("成功", 2000);
-                        refresh();
-                    } else {
-                        showTips(res.message, 2000)
-                    }
-                }, function (e) {
-                    console.log(e);
-                    showTips("网络错误！", 2000)
-                })
-            }
-        }
-    }
-
-    function fileDownload() {
-        let chk_list = document.getElementsByName("checkbox");
-        for(let i= 0;i<chk_list.length;i++){
-            if (chk_list[i].checked) {
-                let reqUrl = util.format("{0}/download?path={1}&filename={2}",fileUrl,pathDom.value,chk_list[i].value);
-                let tt = chk_list[i].getAttribute("data");
-                if (tt === "file") {
-                    // 创建隐藏的可下载链接
-                    let eleLink = document.createElement('a');
-                    eleLink.style.display = 'none';
-                    eleLink.href = reqUrl;
-                    // 触发点击
-                    document.body.appendChild(eleLink);
-                    eleLink.click();
-                    // 然后移除
-                    document.body.removeChild(eleLink);
-                }
-            }
-        }
-    }
-
-    function select(id) {
-        if (id !== "") {
-            checkAllState(false);
-            let name = "checkbox-" + id;
-            document.getElementById(name).checked = true;
-        }
-    }
-
-    function makeNav(path) {
-        let tmp = `<li class="breadcrumb-item"><a href="#" onclick="fileGet('{1}')">{0}</a></li>`;
-        let tmpActive = `<li class="breadcrumb-item active" aria-current="page">{0}</li>`;
-        let dom = document.getElementById('path-nav');
-        dom.innerHTML = "";
-        let array = path.split("/");
-        let str = "";
-        let nowPath = "";
-        for (let i = 0;i < array.length;i++){
-            if (i === 0) {
-                nowPath +=  array[i]
-            }else {
-                nowPath += "/" + array[i]
-            }
-            if (i === array.length - 1){
-                str += util.format(tmpActive,array[i])
-            }else {
-                str += util.format(tmp,array[i],nowPath)
-            }
-        }
-        dom.innerHTML = str;
-    }
-
-    function fileGet(path) {
-        let tmp = `<div class="item">
-                <div class="item-check"><input type="checkbox" id="checkbox-{0}" value="{0}" data="{4}" name="checkbox" class="checkbox" onclick="checkState(this.checked)" ></div>
-                <div class="item-name" onmousedown="select('{0}')">{1}</div>
-                <div class="item-size" onmousedown="select('{0}')">{2}</div>
-                <div class="item-date" onmousedown="select('{0}')">{3}</div>
-            </div>`;
-        pathDom.value = path;
-        let list = document.getElementById('item-list');
-        list.innerHTML = "";
-        let reqUrl = fileUrl+"/get?path="+path;
-        makeNav(path);
-
-        console.log(reqUrl,path);
-        util.httpGet(reqUrl,function (res) {
-            if (res.ok) {
-                let str = "";
-                for (let key in res.data){
-                    let data = res.data[key];
-                    if (data.is_dir){
-                        let folder = util.format(`<a href="#" onclick="fileGet('{1}')" style="text-decoration: none"><i class="fa fa-folder-o"></i><span>&nbsp;&nbsp;{0}</span></a>`,data.filename,pathDom.value+"/"+data.filename);
-                        str += util.format(tmp,data.filename,folder,"-","-","dir")
-                    }else {
-                        let file = util.format(`<i class="fa fa-file-o"></i><span>&nbsp;&nbsp;{0}</span>`,data.filename);
-                        str += util.format(tmp,data.filename,file,util.b2string(data.size,1000),data.date,"file")
-                    }
-                }
-                list.innerHTML = str;
-            } else {
-                showTips("请求错误", 1000)
-            }
-        },function (e) {
-            console.log(11,e);
-            showTips("网络错误！",1000)
-        });
-    }
-
-    /************* 文件上传 ***************/
-
-    function dropEvent(e) {
-        e.preventDefault(); //取消默认浏览器拖拽效果
-        let fileList = e.dataTransfer.files; //获取文件对象
-        //检测是否是拖拽文件到页面的操作
-        if (fileList.length === 0) {
-            return false;
-        }
-        console.log(fileList.length);
-
-        for (let i = 0;i < fileList.length;i++) {
-            fileRead(pathDom.value, fileList[i]);
-        }
-    }
-    
-    function fileRead(path,file) {
-        try {
-            let fileReader = new FileReader();
-            fileReader.readAsDataURL(file.slice(0, 4));
-            fileReader.onload = function (ev) {
-                updateFile(path,file)
-            };
-            fileReader.onerror = function (ev) {
-                showTips("文件夹"+ file.name,1000)
-            };
-        }catch (e) {
-            console.log(e)
-        }
-    }
-
-    function inputFile() {
-        let fileList = document.getElementById('upfile').files;
-        if (fileList.length === 0) {
-            return
-        }
-        for (let i = 0;i < fileList.length;i++) {
-            updateFile(pathDom.value, fileList[i]);
-        }
-        document.getElementById('upfile').value = '';
-    }
-
-    let updateInfos = new Map();
-
-    function updateInfoClose() {
-        updateInfos.clear();
-        document.getElementById('update-info').style.display = "none";
-        document.getElementById('update-list').innerHTML = "";
-    }
-
-    function updateFile(path,file) {
-       let tmp =`<div class="progress">
-            <div class="progress-info">
-            <div class="progress-name">{0}</div>
-            <div class="progress-size">{1}</div>
-            <div class="progress-path">{2}</div>
-            <div id="{3}" class="progress-width">0%</div>
-            </div>
-            <div id="{4}" class="progress-bar progress-bar-striped" style="width: 0%;"  aria-valuemin="0" aria-valuemax="100"></div>
-        </div>`;
-
-        let reqUrl = fileUrl + "/update",
-            chunkSize = 1024 * 1024 * 2, // 以每片4MB大小来逐次读取
-            totalSize = file.size,
-            filename = file.name,
-            fileAbs = path+filename,
-            total = Math.ceil(file.size / chunkSize),
-            existBlob = new Map();
-
-            console.log(filename,totalSize,total,fileAbs);
-        function addUpdateInfo() {
-            document.getElementById('update-info').style.display = "block";
-            if (!updateInfos.has(fileAbs)) {
-                let list = document.getElementById('update-list');
-                let pSize = util.b2string(totalSize,1000);
-                let index = path.lastIndexOf("\/");
-                let pPath = path.substring(index+1,path.length);
-                let pWidth = util.format("{0}-width",fileAbs);
-                let pBar = util.format("{0}-bar",fileAbs);
-                list.innerHTML += util.format(tmp, filename,pSize,pPath,pWidth,pBar);
-                updateInfos.set(fileAbs, fileAbs)
-            }
-        }
-
-        function updateInfo(sendCnt) {
-            if (updateInfos.has(fileAbs)) {
-                let p = (sendCnt*100)/total;
-                let ps = util.format("{0}%",p.toFixed(0));
-                let pWidth = util.format("{0}-width",fileAbs);
-                let pBar = util.format("{0}-bar",fileAbs);
-                if (p === 100) {
-                    document.getElementById(pBar).style.width = "0%";
-                    document.getElementById(pWidth).innerHTML = `<i class="fa fa-check-circle" style="color: #00CC00"></i>`
-                }else {
-                    document.getElementById(pWidth).innerHTML = ps;
-                    document.getElementById(pBar).style.width = ps;
-                }
-            }
-
-        }
-
-        function md5File(file,callback) {
-            let spark = new SparkMD5(),
-                fileReader = new FileReader();
-            fileReader.readAsBinaryString(file);
-            fileReader.onload = function (ev) {
-                spark.appendBinary(ev.target.result);
-                callback(spark.end());
-            };
-        }
-
-        function checkFile(md5,callback) {
-            let fd = new FormData();
-            fd.append('path',path);
-            fd.append('filename', filename);
-            fd.append('current', "0");
-            fd.append('total', total.toString());
-            fd.append('md5', md5);
-            util.httpFormData(reqUrl,fd, function (res) {
-                if (res.code === 1){
-                    showTips("文件夹冲突", 2000);
-                }else if (res.code === 2){
-                    callback(true,res.upload)
-                }else if (res.code === 3){
-                    callback(false)
-                }
-            })
-        }
-
-        function updateFileEnd() {
-            refresh();
-        }
-
-        addUpdateInfo();
-        md5File(file,function (md5) {
-            checkFile(md5,function (need,exist) {
-                if (need){
-                    if (exist) {
-                        console.log(exist);
-                        for (let i = 0; i < exist.length; i++) {
-                            existBlob.set(exist[i], exist[i])
-                        }
-                    }
-
-                    let current = 0;
-                    while (current < total) {
-                        current++;
-                        if (!existBlob.has(current.toString())){
-                            let start = chunkSize * (current-1);
-                            let end = chunkSize * current;
-                            end = end > totalSize ? totalSize : end;
-                            let blob = file.slice(start, end);
-
-                            let fd = new FormData();
-                            fd.append('path',path);
-                            fd.append('file', blob);
-                            fd.append('filename', filename);
-                            fd.append('current', current.toString());
-                            fd.append('total', total.toString());
-                            fd.append('md5', md5);
-
-
-                            util.httpFormData(reqUrl,fd,function (res) {
-                                if (res.code !== 0){
-                                    showTips("文件夹冲突", 2000);
-                                }else {
-                                    existBlob.set(fd.get("current"),"0");
-                                    updateInfo(existBlob.size);
-                                    if (existBlob.size === total){
-                                        updateFileEnd()
-                                    }
-                                }
-                            },function (e) {
-                                showTips("网络错误！",1000)
-                            });
-
-                        }
-                    }
-
-                }else {
-                    updateInfo(total)
-                }
-            })
-        });
-
-    }
-
-</script>
 </body>
 
 </html>

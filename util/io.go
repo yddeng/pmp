@@ -5,16 +5,21 @@ import (
 	"os"
 )
 
-func WriteFile(filename string, reader io.Reader) error {
+func WriteFile(filename string, reader io.Reader) (written int64, err error) {
 	newFile, err := os.Create(filename)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer newFile.Close()
 
-	_, err = io.Copy(newFile, reader)
+	return io.Copy(newFile, reader)
+}
+
+func CopyFile(src, dest string) (written int64, err error) {
+	srcF, err := os.Open(src)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+
+	return WriteFile(dest, srcF)
 }

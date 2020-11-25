@@ -22,8 +22,8 @@ func onCmdStart(replyer *drpc.Replyer, req interface{}) {
 	util.Logger().Infof("onCmdStart %v\n", msg)
 
 	itemID := msg.GetItemID()
-	_, ok := execInfos[itemID]
-	if ok {
+	info, ok := execInfos[itemID]
+	if ok && info.isAlive() {
 		replyer.Reply(&protocol.StartResp{Msg: "itemID is started"}, nil)
 		return
 	}

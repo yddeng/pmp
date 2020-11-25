@@ -5,6 +5,7 @@ import (
 	"github.com/yddeng/dnet/drpc"
 	"github.com/yddeng/dnet/dtcp"
 	"github.com/yddeng/dutil/event"
+	"github.com/yddeng/pmp/core"
 	"github.com/yddeng/pmp/net"
 	"github.com/yddeng/pmp/net/pb"
 	"github.com/yddeng/pmp/protocol"
@@ -93,7 +94,7 @@ func Launch() {
 	initHandler()
 	loadScriptFile()
 	loadItemFile()
-	loadFileFile()
+	loadFilePath(core.SharedPath)
 
 	if err := startListener(); err != nil {
 		panic(err)
